@@ -647,7 +647,7 @@ Mipc::dumpregs (void)
 void
 Mipc::func_add_addu (Mipc *mc, unsigned ins)
 {
-   mc->_opResultLo = mc->_decodedSRC1 + mc->_decodedSRC2;
+   mc->_opResultLo = (unsigned)(mc->_decodedSRC1 + mc->_decodedSRC2);
    // printf("Encountered unimplemented instruction: add or addu.\n");
    // printf("You need to fill in func_add_addu in exec_helper.cc to proceed forward.\n");
    // exit(0);
@@ -1011,6 +1011,7 @@ Mipc::func_jal (Mipc *mc, unsigned ins)
 {
    mc->_num_jal++;
    mc->_opResultLo = mc->_pc + 8;
+   mc->_btaken = 1;
    // printf("Encountered unimplemented instruction: jal.\n");
    // printf("You need to fill in func_jal in exec_helper.cc to proceed forward.\n");
    // exit(0);

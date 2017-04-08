@@ -1,0 +1,716 @@
+divert(-1)
+
+dnl --------------------------------------------------------------------
+dnl  c.m4.mipc:  m4 macro definitions for use with Mipc.
+dnl  This file implements a high-level synchronization model for "C".
+dnl 
+dnl  Mark Heinrich
+dnl  3/15/00
+dnl --------------------------------------------------------------------
+
+dnl ----------------------------------------------------------------------
+dnl ENVIRONMENT SETUP
+dnl ----------------------------------------------------------------------
+
+define(MAIN_ENV, `
+#include <stdlib.h>
+#include <stdarg.h>
+#include <unistd.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
+#include "mipc.h"
+#ifdef __cplusplus
+}
+#endif
+#ifdef USE_BUILD_OPTIONS
+# include ".build_options.inc"
+#endif
+
+int _num_procs = 1;
+LOCKDEC(mallock);
+int _array_lock_index;
+')
+
+define(EXTERN_ENV, `
+#ifdef __cplusplus
+extern "C" {
+#endif
+#include "mipc.h"
+
+extern int _num_procs;
+extern LOCKDEC(mallock);
+
+#ifdef __cplusplus
+}
+#endif
+')
+
+dnl ----------------------------------------------------------------------
+dnl INITIALIZATION CALLS
+dnl ----------------------------------------------------------------------
+
+define(MAIN_INITENV, `INITENV($1,$2)')
+
+define(INITENV, ` LOCKINIT(mallock);
+	         
+')
+
+
+
+dnl ----------------------------------------------------------------------
+dnl INSTRUCTION REPLACEMENTS
+dnl
+dnl We can't get ld, sd, or sync to compile in quite yet, so we use these
+dnl calls to the support library. These routines should be made into
+dnl asm() calls so that the compiler can deal with them better.
+dnl ----------------------------------------------------------------------
+define(SYNC_OP, `_Sync();')
+
+define(LD, `_LoadDouble((unsigned long long *)($1));')
+
+define(SD, `_StoreDouble((unsigned long long *)($1),
+                         (unsigned long long)($2));')
+
+
+dnl ----------------------------------------------------------------
+dnl NON-SYNCHRONIZATION CALLS
+dnl ----------------------------------------------------------------
+
+define(CLOCK, `$1 = _Syscall(MIPC_ANL_CLOCK)')
+
+define(MAIN_END, `{
+  fflush(stdout); 
+  fflush(stderr); 
+  SYNC_OP();
+}')
+
+define(CREATE, `{
+  SYNC_OP; 
+  _Create((unsigned)$1,(unsigned)_exit);
+  _num_procs++;
+}')
+
+define(GET_PID, `$1 = _Syscall(MIPC_ANL_GETCPU)')
+
+define(RESET_STATS, ` { 
+#ifndef NO_RESET
+_Syscall(MIPC_ANL_RESET_STATS);
+#else
+  ;
+#endif
+}')
+
+dnl
+dnl PAGE_Malloc(dest, cast, size)
+dnl
+dnl Use this for malloc a page-aligned chunk of memory.  
+dnl For instance:
+dnl
+dnl   PAGE_Malloc(foo, (int *), 10*sizeof(int))
+dnl
+dnl is the same as
+dnl
+dnl   foo = (int *) malloc(10*sizeof(int));
+dnl
+dnl except the macro call guarantees that foo is page-aligned.
+dnl
+
+define(PAGE_Malloc, `
+{
+   void* addr;
+   int num_pages;
+   
+   num_pages = ($3) / PAGE_SIZE + 1;
+   if (($3) % PAGE_SIZE) {
+      num_pages += 1;
+   }
+
+   $1 = $2 G_MALLOC(num_pages * PAGE_SIZE);
+
+   addr = (void*) $1;
+   assert(addr != NULL);
+   $1 = $2 ((((int) addr) & ~(PAGE_SIZE - 1)) + PAGE_SIZE);
+   assert(((unsigned int) $1 - (unsigned int) addr + ($3)) <= (num_pages * PAGE_SIZE));
+
+}
+')
+
+dnl ----------------------------------------------------------------
+dnl SYNCHRONIZATION CALLS
+dnl ----------------------------------------------------------------
+
+define(FETCH_AND_INC, `
+   $2 = _FetchAndInc($1); ')
+
+dnl -------------------------------------------------------------------------
+dnl LOCK implementation 
+dnl THESE NEED TO BE DEFINED FIRST SO IT EXPANDS CORRECTLY!
+dnl -------------------------------------------------------------------------
+
+dnl -----------------------------
+dnl        _REALLOCK MACROS
+dnl
+dnl Real LL/SC locks. 
+dnl -----------------------------
+
+define(_REALLOCKDEC, `
+      struct { 
+          int _pad1[(MIPC_ANL_CACHE_LINE_SIZE/sizeof(int))-1];
+          unsigned int lock; 
+          int _pad2[(MIPC_ANL_CACHE_LINE_SIZE/sizeof(int))-1];
+      } $1; ')
+
+define(_REALLOCKDEC_UNPADDED, `
+      struct { 
+          unsigned int lock; 
+      } $1; ')
+
+define(_REALLOCKINIT, `$1.lock = 0;')
+
+define(_REALLOCK, `_LockEnter(&($1.lock));')
+define(_REALUNLOCK, `_Unlock(&($1.lock));')
+
+define(LOCKDEC, 
+    `
+#ifndef NO_PADDED_LOCKS
+     _REALLOCKDEC($1)
+#else
+     _REALLOCKDEC_UNPADDED($1)
+#endif
+    ')
+
+define(LOCKDEC_UNPADDED, 
+    `
+     _REALLOCKDEC_UNPADDED($1)
+    ')
+
+define(LOCKINIT, 
+    `
+     _REALLOCKINIT($1)
+    ')
+define(LOCK, 
+    `
+     _REALLOCK($1);
+    ')
+define(UNLOCK, 
+    `
+     _REALUNLOCK($1);
+    ')
+
+define(_REALALOCKDEC, `
+        struct {
+             int _pad1[(MIPC_ANL_CACHE_LINE_SIZE/sizeof(int))-1];      
+             struct {
+                unsigned int lock;
+                int _pad1[(MIPC_ANL_CACHE_LINE_SIZE/sizeof(int))-1];      
+             } _alock[$2];
+        } $1; ')
+
+define(_REALALOCKDEC_UNPADDED, `
+        struct {
+             struct {
+                unsigned int lock;
+             } _alock[$2];
+        } $1; ')
+
+
+define(_REALALOCKINIT, 
+  `{
+      int _mipci;
+      for(_mipci = 0; _mipci < $2; _mipci++) {
+       $1._alock[_mipci].lock = 0;
+      }
+   }')
+
+
+define(_REALALOCK, `_LockEnter(&$1._alock[$2].lock);')
+define(_REALAULOCK, `_Unlock(&$1._alock[$2].lock);')
+
+
+define(ALOCKDEC, 
+    `
+#ifndef NO_PADDED_LOCKS
+     _REALALOCKDEC_UNPADDED($1,$2)
+#else
+     _REALALOCKDEC($1,$2)
+#endif
+    ')
+
+define(ALOCKDEC_UNPADDED, 
+    `
+     _REALALOCKDEC_UNPADDED($1,$2)
+    ')
+
+define(ALOCKINIT, 
+    `
+     _REALALOCKINIT($1,$2)
+    ')
+define(ALOCK, 
+    `
+     _REALALOCK($1,$2)
+    ')
+define(AULOCK, 
+    `
+     _REALAULOCK($1,$2)
+    ')
+
+define(ARRAYLOCKDEC, `
+   unsigned int _pad_$1[MIPC_ANL_CACHE_LINE_SIZE/sizeof(unsigned int)]; unsigned int *$1; unsigned int _pad_$1_$2[MIPC_ANL_CACHE_LINE_SIZE/sizeof(unsigned int)]; unsigned int $2; unsigned int _pad_$2[MIPC_ANL_CACHE_LINE_SIZE/sizeof(unsigned int)]; ')
+
+define(ARRAYLOCKINIT, `{
+   $1 = (unsigned int*) G_MEMALIGN(PAGE_SIZE, $3*32*sizeof(unsigned int)); 
+   for(_array_lock_index=1;_array_lock_index<$3;_array_lock_index++) {
+      $1[_array_lock_index*32] = 0;
+   }
+   $1[0] = 1;
+   $2 = 0;
+   } ')
+
+define(ARRAYLOCK, `
+   $3 = _ArrayLockAcquire($1, $2, $4); ')
+
+define(ARRAYUNLOCK, `
+   _ArrayUnlockEntry($1, $2, $3); ')
+
+dnl ----------------------------------------------------------------------
+dnl BARRIER implementations.
+dnl ----------------------------------------------------------------------
+
+dnl -----------------------------
+dnl       SLOW BARRIER MACROS
+dnl
+dnl This barrier works fine, since LOCK (the field itself) is never modified
+dnl backdoor. This other information can be done in this way just fine.
+dnl -----------------------------
+define(_SLOWBARDEC, `
+  struct $1_BARRIER_TYP {
+    LOCKDEC(lock)
+    volatile int count;
+    volatile int spin;
+    volatile int inuse;
+  } $1;
+')
+
+define(_SLOWBARINIT, 
+`{
+	LOCKINIT($1.lock)
+	$1.count = 0;
+	$1.spin  = 1;
+	$1.inuse = 0;
+}')
+
+
+define(_SLOWBARRIER, 
+`{
+   SYNC_OP
+   _BarEnter();
+   while ($1.inuse)
+     ;
+   LOCK($1.lock)
+   if ($1.count++ < ($2 - 1)) {
+     UNLOCK($1.lock)
+     while($1.spin)
+       ;
+     LOCK($1.lock)
+   } else { 
+     $1.inuse = 1;
+     $1.spin  = 0;
+   }
+   if (--$1.count == 0) {
+    $1.spin  = 1;
+    $1.inuse = 0;
+   }
+   UNLOCK($1.lock)
+   _BarExit();
+}')
+
+
+
+dnl -----------------------------
+dnl       REAL BARRIER MACROS
+dnl
+dnl -----------------------------
+define(_REALBARDEC, `
+  struct $1_BARRIER_TYP {
+    long long _pad1[(MIPC_ANL_CACHE_LINE_SIZE/sizeof(long long))-1];
+    unsigned int count;
+    unsigned int prefetch_loc;
+    int _pad2[(MIPC_ANL_CACHE_LINE_SIZE/sizeof(int))-1];
+    unsigned int generationNumber;
+    int _pad3[(MIPC_ANL_CACHE_LINE_SIZE/sizeof(int))-1];           
+  } $1;
+')
+
+define(_REALBARINIT, 
+`{
+	$1.count = 0;
+	$1.generationNumber  = 0;
+}')
+
+define(_REALBARRIER, `_Barrier(&$1.count,$2);')
+
+define(BARDEC, 
+   `
+#ifdef SLOW_BARRIER
+     _SLOWBARDEC($1)
+#else
+     _REALBARDEC($1)
+#endif
+    ')
+
+define(BARINIT, 
+   `
+#ifdef SLOW_BARRIER
+     _SLOWBARINIT($1)
+#else
+     _REALBARINIT($1)
+#endif
+    ')
+
+define(BARRIER,
+   `
+#ifdef SLOW_BARRIER
+     _SLOWBARRIER($1,$2);
+#else
+     _REALBARRIER($1,$2);
+#endif
+    ')
+
+
+dnl -----------------------------
+dnl    PREFETCH MACROS
+dnl
+define(PREFETCH, `_Prefetch($1);')
+define(PREFETCHX, `_PrefetchX($1);')
+
+dnl -----------------------------
+dnl    PLACEMENT MACROS
+dnl
+define(sys_place_range, `{ 
+_PlaceRange((unsigned)($1),
+	(unsigned)($2), (unsigned)($3));
+}
+')
+dnl define(sys_place_range, `{ 
+dnl CommAreaPtr->PlaceRange((unsigned)($1),
+dnl 	(unsigned)($2), (unsigned)($3));
+dnl #ifdef FLASHPOINT
+dnl FP_ReassignBins(((void *)($1)), (unsigned)($2) - (unsigned)($1));
+dnl #endif
+dnld}
+dnl ')
+define(SYS_PLACE_RANGE, `{sys_place_range($1, $2, $3);}')
+
+dnl -----------------------------
+dnl    MALLOC MACROS
+dnl
+dnl renamed functions:
+
+define(G_MALLOC, `malloc($1)')
+define(G_MEMALIGN, `memalign($1, $2)')
+define(P_MEMALIGN, `LOCK(mallock);
+                    $3 = ($4) memalign($1, $2);
+	#ifdef PLACE
+        _PlaceRange((unsigned)($3), (unsigned)($3) + (unsigned)($2),
+                                 _Syscall(MIPC_ANL_GETCPU));
+        #endif
+                    UNLOCK(mallock)
+                   ')
+define(P_MALLOC, `LOCK(mallock);
+                  $1 = ($3) G_MALLOC($2);
+        #ifdef PLACE
+	_PlaceRange((unsigned)($1), (unsigned)($1) + (unsigned)($2),
+				 _Syscall(MIPC_ANL_GETCPU));
+        #endif
+                  UNLOCK(mallock)
+                  
+')
+
+
+dnl -----------------------------
+dnl     PAUSE stuff
+dnl -----------------------------
+
+define(PAUSEDEC, `
+struct $1_PAUSE_STRUCT {
+  LOCKDEC(lock)
+  volatile  int flag;
+} $1;
+')
+
+define(PAUSEINIT, `
+{ 
+  $1.flag = 0;
+  LOCKINIT($1.lock)
+}
+');
+
+define(CLEARPAUSE, `
+  $1.flag = 0;
+');
+
+define(SETPAUSE, `
+{
+  SYNC_OP;
+  LOCK($1.lock)
+  $1.flag = 1;
+  UNLOCK($1.lock)
+}
+');
+
+define(WAITPAUSE, `
+{
+  while (($1.flag) == 0);
+}
+');
+
+dnl ---------------------------
+dnl    Tree Barriers
+dnl
+dnl $1 = name,  $2 = PAGE_SIZE
+dnl ---------------------------
+dnl define(TREE_BAR_PAGE_PAUSE_TYPEDEC, `
+dnl typedef struct $1_PAUSE_STRUCT {
+dnl   _REALLOCKDEC_UNPADDED(lock)
+dnl   volatile  int flag;
+dnl } $1_PAUSE_STRUCT;
+dnl 
+dnl typedef struct $1_PAGE_PAUSE_STRUCT {
+dnl    int numPauseDecsUsed;
+dnl    $1_PAUSE_STRUCT pauseDecArray[($2/sizeof($1_PAUSE_STRUCT))-1];
+dnl } $1_PAGE_PAUSE_STRUCT;
+dnl ')
+
+define(TREE_BAR_TYPEDEFS, `
+typedef struct $1_PAUSE_STRUCT {
+  _REALLOCKDEC_UNPADDED(lock)
+  volatile  int flag;
+} $1_PAUSE_STRUCT;
+
+typedef struct $1_PAGE_PAUSE_STRUCT {
+   int numPauseDecsUsed;
+   $1_PAUSE_STRUCT pauseDecArray[($2/sizeof($1_PAUSE_STRUCT))-1];
+} $1_PAGE_PAUSE_STRUCT;
+
+typedef struct $1_PAUSE_PTR_STRUCT {
+   $1_PAUSE_STRUCT *pausePtrArray[2*$3];
+} $1_PAUSE_PTR_STRUCT;
+
+')
+
+dnl
+dnl $1=name,  $2 = numProcs
+dnl
+define(TREE_BARDEC, `
+TREE_BAR_TYPEDEFS($1, $2, $3);
+
+$1_PAUSE_PTR_STRUCT $1;
+')
+
+
+dnl
+dnl $1=name,  $2 page size, $3 = max numProcs
+dnl
+define(EXTERN_TREE_BARDEC, `
+TREE_BAR_TYPEDEFS($1, $2, $3);
+
+
+extern $1_PAUSE_PTR_STRUCT $1;
+')
+
+define(INSTANTIATE_TREE_BAR, `
+$1_PAUSE_PTR_STRUCT $1;
+')
+
+
+define(CLEARTREEPAUSE, `
+  $1.flag = 0;
+');
+
+define(SETTREEPAUSE, `
+{
+  SYNC_OP;
+  LOCK($1.lock)
+  $1.flag += 1;
+  UNLOCK($1.lock)
+}
+');
+
+define(WAITTREEPAUSE, `
+{
+  while (($1.flag) < $2);
+}
+');
+
+dnl -----------------------------
+dnl    Active Memory Macros
+dnl -----------------------------
+
+define(IO_GETPHYSADDR,`_GetPhysAddr((unsigned)$1)')
+
+dnl Usage: IO_GETPHYSADDR(va)
+dnl    returns the physical address corresponding to the virtual address va
+
+
+dnl -----------------------------
+dnl    MSG/IO MAPPING MACROS
+dnl -----------------------------
+
+define(IO_MAP, `_IOMap((unsigned) $1,$2);')
+
+dnl Usage: IO_MAP(VA, PA);
+dnl VA that is passed can be used in the future directly to access the
+dnl   requested PA range. Be sure VA goes in page aligned!!
+dnl PA BETTER BE long long, or WATCH OUT!!
+
+dnl NOTE: 6/96 IOMapAccelerated isn't yet implemented in the CommArea vector
+dnl define(IO_MAP_ACCELERATED, `CommAreaPtr->IOMapAccelerated((unsigned) $1,$2);')
+dnl Usage: IO_MAP_ACCELERATED(VA, PA);
+dnl VA that is passed can be used in the future directly to access the
+dnl   requested PA range. Be sure VA goes in page aligned!!
+dnl PA BETTER BE long long, or WATCH OUT!!
+
+define(IO_MAP_GENERAL, `_IOMapGeneral((unsigned) $1,$2,$3);')
+dnl JH: This allows all the parameters to be set from the application level,
+dnl    to let me set a range of functions without specific macros for each.
+dnl    This effectively obsoletes the macros above, but I'll keep them for
+dnl    backward compatbility.
+dnl Usage: IO_MAP(VA, details, PA);
+dnl 
+dnl details == IO_MAP_UNCACHED | IO_MAP_ACCELERATED | space
+dnl   where UNCACHED and ACCELERATED are flags present as appropriate
+dnl
+dnl Be sure VA goes in page aligned!!
+dnl PA BETTER BE long long, or WATCH OUT!!
+
+
+define(MSG_SPACE, `((void *) ((int)($1) | 0x80000000))')
+dnl
+dnl This is an expression macro...to use it, you'd say:
+dnl *(MSG_SPACE_FLAG(pointer)) = value
+dnl to issue an uncached write in the message space for a particular
+dnl VA.  This dynamically creates a mapping, if required.
+
+dnl **********************************************************************
+dnl FIXTHIS: functions below here are poorly or incorrectly implemented
+dnl **********************************************************************
+
+define(WAIT_FOR_END, `
+        {
+	_Wait_for_end((unsigned)$1);
+	_num_procs=_num_procs-$1;
+}
+')
+
+define(ENDLAB, 1000)
+define(AUG_STACK, 0)
+
+define(ST_LOG, `;')
+
+dnl **********************************************************************
+dnl FIXTHIS: functions below here are not currently provided
+dnl **********************************************************************
+
+dnl  define(AUG_ON, 
+dnl  `define(`AUG_STACK',incr(AUG_STACK))ifelse(AUG_STACK,1,`@@aug_ON@@')ifelse(AUG_STACK,0,`
+dnl #ifdef AUG
+dnl aug_on_();
+dnl #endif
+dnl ')')
+dnl define(AUG_OFF, `define(`AUG_STACK',eval(AUG_STACK-1))ifelse(AUG_STACK,-1,`
+dnl #ifdef AUG
+dnl aug_off_();
+dnl #endif
+dnl ')')
+dnl 
+dnl define(AUG_DELAY, `{AUG_OFF SYS_THREAD_PTR->clock+=($1);AUG_ON}')
+dnl define(DECVAR, `struct $1TYP{sys_mon_t mon;$4}$1[ifelse($3,,1,$3)];')
+dnl define(GET_PID_F, `(SYS_THREAD_PTR->user_pid)')
+dnl 
+dnl 
+dnl 
+dnl define(NU_MALLOC_F, `sim_malloc($1,$2,__LINE__,__FILE__)')
+dnl define(NU_MALLOC, `NU_MALLOC_F($1,$2);')
+dnl define(ST_LOG, `{AUG_OFF sim_sync_event($1,ifelse($2,,-1,(int)($2)),ifelse($3,,-1,(int)($3)),ifelse($4,,-1,(int)($4)),ifelse($5,,-1,(int)($5)),__LINE__,__FILE__);AUG_ON}')
+dnl 
+dnl define(G_MALLOC_F, `NU_MALLOC_F($1,PAGE_GENERIC)')
+dnl define(G_FREE, `NU_FREE($1)')
+dnl 
+dnl 
+dnl define(GET_HOME, `{int sys_r,sys_a=(int)($2);
+dnl   ST_LOG(ST_GET_PAGETYPE,&sys_r,sys_a)($1)=sys_r;}')
+dnl 
+dnl 
+dnl define(NU_FREE, `{int sys_a=(int)($1);ST_LOG(ST_GFREE,sys_a)}')
+dnl define(SET_HOME, `{int sys_a=(int)&($1),sys_b=(int)($2);
+dnl   ST_LOG(ST_SET_PAGETYPE,sys_a,sys_b)}')
+dnl 
+dnl define(MONINIT, `{unsigned sys_i;int sys_b=(int)($2);
+dnl   for(sys_i=0;sys_i<(ifelse($3,,1,$3));sys_i++){int sys_a=(int)&(($1)[sys_i]);
+dnl     ST_LOG(ST_MONINIT,sys_a,sys_b)}}')
+dnl define(MENTER, `{int sys_a=(int)&(($1)[ifelse($2,,0,$2)]);
+dnl   ST_LOG(ST_MENTER,sys_a)}')
+dnl define(DELAY, `{int sys_a=(int)&(($1)[ifelse($3,,0,$3)]),sys_b=(int)(ifelse($2,,0,$2));
+dnl   ST_LOG(ST_DELAY,sys_a,sys_b)}')
+dnl define(CONTINUE, `{int sys_a=(int)&(($1)[ifelse($3,,0,$3)]),sys_b=(int)(ifelse($2,,0,$2));
+dnl   ST_LOG(ST_CONTINUE,sys_a,sys_b)if(sys_t())goto `L'ENDLAB;}')
+dnl define(MEXIT, `{int sys_a=(int)&(($1)[ifelse($2,,0,$2)]);
+dnl   ST_LOG(ST_MEXIT,sys_a)`L'ENDLAB:define(`ENDLAB',incr(ENDLAB));}')
+dnl 
+dnl define(SEMDEC, `sys_sem_t ($1)[ifelse($2,,1,$2)];')
+dnl define(SEMINIT, `{unsigned sys_k;int sys_a,sys_b=(int)($2);
+dnl   for(sys_k=0;sys_k<(ifelse($3,,1,$3));sys_k++){
+dnl     sys_a=(int)&(($1)[sys_k]);ST_LOG(ST_SEM_INIT,sys_a,sys_b)}}')
+dnl define(SEMP, `{int sys_a=(int)&(($1)[ifelse($2,,0,$2)]);
+dnl   ST_LOG(ST_SEM_OP,sys_a,-1)}')
+dnl define(SEMV, `{int sys_a=(int)&(($1)[ifelse($2,,0,$2)]);
+dnl   ST_LOG(ST_SEM_OP,sys_a,1)}')
+dnl 
+dnl define(GSDEC, `sys_gs_t ($1)[ifelse($2,,1,$2)];')
+dnl define(GSINIT, `{unsigned sys_k;
+dnl   for(sys_k=0;sys_k<(ifelse($2,,1,$2));sys_k++){
+dnl     int sys_a=(int)&(($1)[sys_k]);ST_LOG(ST_GS_INIT,sys_a)}}')
+dnl define(GETSUB, `{
+dnl   int sys_a=(int)&(($1)[ifelse($5,,0,$5)]),sys_b=(int)&($2),sys_c=(int)($3),sys_d=(int)($4);
+dnl   ST_LOG(ST_GS_ENTER,sys_a,sys_b,sys_c,sys_d)}')
+dnl define(WEAKGETSUB, `{
+dnl   int sys_a=(int)&(($1)[ifelse($4,,0,$4)]),sys_b=(int)&($2),sys_c=(int)($3);
+dnl   ST_LOG(ST_GS_EXIT,sys_a,sys_b,sys_c)}')
+dnl 
+dnl 
+dnl 
+dnl define(NLOCKDEC, `LOCKDEC($1,$2)')
+dnl define(NLOCKINIT, `LOCKINIT($1,$2)')
+dnl define(NLOCK, `LOCK($1,$2)')
+dnl define(NUNLOCK, `UNLOCK($1,$2)')
+dnl 
+
+define(START_COUNTERS, `;');
+define(STOP_COUNTERS, `;');
+define(PRINT_COUNTERS, `;')
+define(MAGIC_COUNTER_DEC, `')
+define(MAGIC_COUNTER_INIT, `')
+define(MAGIC_COUNTER_PRINT_DIFF, `')
+define(MAGIC_COUNTER_READ_ALL, `')
+
+dnl--------------------------------------------------------------------------
+dnl 	CACHE FLUSH CALLS
+dnl--------------------------------------------------------------------------
+
+define(HIT_WB_INVAL_D, `_Hit_WB_Inval_D((unsigned)$1)')
+define(HIT_WB_INVAL_S, `_Hit_WB_Inval_S((unsigned)$1)')
+define(INDEX_WB_INVAL_D, `_Index_WB_Inval_D($1,$2)')
+define(INDEX_WB_INVAL_S, `_Index_WB_Inval_S($1,$2)')
+define(FLUSH_D, `{
+SYNC_OP;
+_Syscall(MIPC_ANL_FLUSH_D);
+}')
+define(FLUSH_S, `{
+SYNC_OP;
+_Syscall(MIPC_ANL_FLUSH_S);
+}')
+define(PAGE_FLUSH_D, `_Page_Flush_D((unsigned)$1)')
+define(PAGE_FLUSH_S, `_Page_Flush_S((unsigned)$1)')
+
+divert(0)

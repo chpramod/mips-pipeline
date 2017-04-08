@@ -1,0 +1,31 @@
+#!/bin/sh
+#
+# $Id: make_context,v 1.1.1.1 2006/05/23 13:53:59 mainakc Exp $
+#
+# Guess the jmp buffer positions
+#
+trap 'echo "please wait"' 1 2 15
+
+"$@" contexts.c 2> context_junk.tmp
+if [ $? -eq 0 -a ! -s context_junk.tmp ]
+then
+    rm context_junk.tmp
+    exit 0
+fi
+rm context_junk.tmp
+
+echo "Your machine/OS combination is not supported. Attempting to guess"
+echo "the machine-dependent parameters"
+
+echo
+echo "WARNING: If you have weird hardware (like a Sparc), this is unlikely"
+echo "WARNING: to work."
+echo
+
+cp contexts.h real_contexts.h
+guess >> contexts.h
+"$@" -c contexts.c
+exit_status=$?
+rm contexts.h
+mv real_contexts.h contexts.h
+exit $exit_status

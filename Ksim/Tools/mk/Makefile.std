@@ -1,0 +1,492 @@
+#
+#  Standard Makefile
+#
+#  Defines a whole bunch of targets:
+#
+#   clean     -- removes $(OFILES), *~, *#, *.bak
+#   clobber   -- cleans, plus removes $(TARGETS)
+#   depend    -- generate dependencies
+#   realclean -- cleans plus deletes dependencies
+#
+#  $Id: Makefile.std,v 1.1.1.1 2006/05/23 13:53:51 mainakc Exp $
+#
+ifeq ($(ARCH), sgi)
+# sgi settings
+	OPT=-O -n32 -OPT:Olimit=0
+	CC=cc $(OPT)
+	CXX=CC $(OPT)
+	LD=cc
+	RANLIB=/bin/true
+	DEPFLAGS=-M
+else
+ifeq ($(ARCH), x86)
+# x86 settings
+	OPT=-O3
+#	CCNOOPT=/mnt/gcc-3.1.1/bin/gcc
+#	CXXNOOPT=/mnt/gcc-3.1.1/bin/g++
+#	CC=$(CCNOOPT)  $(OPT)
+#	CXX=$(CXXNOOPT) $(OPT)
+	CC=/usr/bin/gcc $(OPT)
+	CXX=/usr/bin/g++ $(OPT)
+   	CXXNOOPT=/usr/bin/g++
+	LD=ld
+#	CC=icc $(OPT)
+#	CXX=icpc $(OPT)
+#	CXXNOOPT=icpc
+#	LD=/opt/intel_cc_80/bin/xild
+#	LD=/mnt/gcc-3.1.1/bin/ld
+	RANLIB=ranlib
+#	RANLIB=/mnt/gcc-3.1.1/bin/ranlib
+	DEPFLAGS=-M
+	PERL=/usr/bin/perl
+else
+ifeq ($(ARCH), sparc)
+# sparc settings
+	OPT=-O2
+	CC=gcc $(OPT)
+	CXX=c++ $(OPT)
+	LD=ld
+	RANLIB=ranlib
+	DEPFLAGS=-M
+else
+# default settings
+	OPT=-O2
+	CC=gcc $(OPT)
+	CXX=c++ $(OPT)
+	LD=ld
+	RANLIB=ranlib
+	DEPFLAGS=-M
+	PERL=/usr/local/bin/perl
+endif
+endif
+endif
+
+ECHO=echo
+MKDIR=mkdir
+MV=mv
+CP=cp
+SED=sed
+RM=rm -f 
+RMDIR=rmdir
+ifndef DEPDIR
+DEPDIR=deps
+endif
+
+ifndef CCMKDEP
+CCMKDEP=$(CC)
+endif
+
+ifndef CXXMKDEP
+CXXMKDEP=$(CXX)
+endif
+
+#JSK
+ifndef MAKE
+MAKE=gmake
+endif
+
+ifndef SIMDIR
+SIMDIR=$(HOME)/Sim
+endif
+TOOLS=$(SIMDIR)/Tools
+
+BASECFLAGS= -DLINUX -D_BSD_SIGNALS -I. -I$(SIMDIR)/lib
+#BASECFLAGS= -I. -I$(SIMDIR)/lib 
+#BASECFLAGS= -D_BSD_SIGNALS -I. -I$(SIMDIR)/lib 
+ifndef CFLAGS
+CFLAGS=$(BASECFLAGS) $(MORECFLAGS) 
+endif
+LFLAGS= -L$(SIMDIR)/lib
+
+LDEP=$(SIMDIR)/lib/libsim.a #$(SIMDIR)/lib/libasim.a
+
+CLEANFILES=$(OFILES) $(GENFILES) *.f.c
+
+#
+# SGI
+#
+#CC=cc -O2
+#CXX=CC -O2
+#LD=ld
+#
+# Alpha
+#
+#CC=cc -O5 -tune ev5 -migrate
+#CXX=g++ -O2
+#LD=ld
+
+ifdef MAKE
+ifdef p
+MAKE:=$(MAKE) -j $(p)
+endif
+endif
+
+all:
+	$(MAKE) all_subdirs ARGS=all
+	$(MAKE) buildinfo
+	$(MAKE) depend_local
+	$(MAKE) multi_version
+	$(MAKE) alltargets INCLUDE_DEPS=1
+
+debug:
+	$(MAKE) all_subdirs ARGS=debug
+	$(MAKE) OPT="-g" buildinfo
+	$(MAKE) OPT="-g" depend_local
+	$(MAKE) OPT="-g" alltargets INCLUDE_DEPS=1
+
+profile:
+	$(MAKE) all_subdirs ARGS=profile
+	$(MAKE) OPT="-pg" buildinfo
+	$(MAKE) OPT="-pg" depend_local
+	$(MAKE) OPT="-pg" alltargets INCLUDE_DEPS=1
+
+smt:
+	$(MAKE) all_subdirs ARGS=smt
+	$(MAKE) buildinfo
+	$(MAKE) depend_local
+	$(MAKE) alltargets INCLUDE_DEPS=1
+
+smtcoarse2:
+	$(MAKE) all_subdirs ARGS=smtcoarse2
+	$(MAKE) buildinfo
+	$(MAKE) depend_local
+	$(MAKE) alltargets INCLUDE_DEPS=1
+
+smtd:
+	$(MAKE) all_subdirs ARGS=smtd
+	$(MAKE) OPT="-g" buildinfo
+	$(MAKE) OPT="-g" depend_local
+	$(MAKE) OPT="-g" alltargets INCLUDE_DEPS=1
+
+smtp:
+	$(MAKE) all_subdirs ARGS=smtp
+	$(MAKE) OPT="-pg" buildinfo
+	$(MAKE) OPT="-pg" depend_local
+	$(MAKE) OPT="-pg" alltargets INCLUDE_DEPS=1
+
+cmp:
+	$(MAKE) all_subdirs ARGS=cmp
+	$(MAKE) buildinfo
+	$(MAKE) depend_local
+	$(MAKE) alltargets INCLUDE_DEPS=1
+
+cmpdebug:
+	$(MAKE) all_subdirs ARGS=cmpdebug
+	$(MAKE) OPT="-g" buildinfo
+	$(MAKE) OPT="-g" depend_local
+	$(MAKE) OPT="-g" alltargets INCLUDE_DEPS=1
+
+cmpprofile:
+	$(MAKE) all_subdirs ARGS=cmpprofile
+	$(MAKE) OPT="-pg" buildinfo
+	$(MAKE) OPT="-pg" depend_local
+	$(MAKE) OPT="-pg" alltargets INCLUDE_DEPS=1
+
+amtestsmt:
+	$(MAKE) all_subdirs ARGS=amtestsmt
+	$(MAKE) buildinfo
+	$(MAKE) depend_local
+	$(MAKE) alltargets INCLUDE_DEPS=1
+
+transsmt:
+	$(MAKE) all_subdirs ARGS=transsmt
+	$(MAKE) buildinfo
+	$(MAKE) depend_local
+	$(MAKE) alltargets INCLUDE_DEPS=1
+
+reductionsmt:
+	$(MAKE) all_subdirs ARGS=reductionsmt
+	$(MAKE) buildinfo
+	$(MAKE) depend_local
+	$(MAKE) alltargets INCLUDE_DEPS=1
+
+base:
+	$(MAKE) all_subdirs ARGS=base
+	$(MAKE) buildinfo
+	$(MAKE) depend_local
+	$(MAKE) alltargets INCLUDE_DEPS=1
+
+baseamtest:
+	$(MAKE) all_subdirs ARGS=baseamtest
+	$(MAKE) buildinfo
+	$(MAKE) depend_local
+	$(MAKE) alltargets INCLUDE_DEPS=1
+
+basetrans:
+	$(MAKE) all_subdirs ARGS=basetrans
+	$(MAKE) buildinfo
+	$(MAKE) depend_local
+	$(MAKE) alltargets INCLUDE_DEPS=1
+
+basereduction:
+	$(MAKE) all_subdirs ARGS=basereduction
+	$(MAKE) buildinfo
+	$(MAKE) depend_local
+	$(MAKE) alltargets INCLUDE_DEPS=1
+
+basedebug:
+	$(MAKE) all_subdirs ARGS=basedebug
+	$(MAKE) OPT="-g" buildinfo
+	$(MAKE) OPT="-g" depend_local
+	$(MAKE) OPT="-g" alltargets INCLUDE_DEPS=1
+
+baseprofile:
+	$(MAKE) all_subdirs ARGS=baseprofile
+	$(MAKE) OPT="-pg" buildinfo
+	$(MAKE) OPT="-pg" depend_local
+	$(MAKE) OPT="-pg" alltargets INCLUDE_DEPS=1	
+
+coarse2:
+	$(MAKE) all_subdirs ARGS=coarse2
+	$(MAKE) buildinfo
+	$(MAKE) depend_local
+	$(MAKE) alltargets INCLUDE_DEPS=1
+
+coarse4:
+	$(MAKE) all_subdirs ARGS=coarse4
+	$(MAKE) buildinfo
+	$(MAKE) depend_local
+	$(MAKE) alltargets INCLUDE_DEPS=1
+
+isca:
+	$(MAKE) all_subdirs ARGS=isca
+	$(MAKE) buildinfo
+	$(MAKE) depend_local
+	$(MAKE) alltargets INCLUDE_DEPS=1
+
+amtest: 
+	$(MAKE) all_subdirs ARGS=amtest
+	$(MAKE) buildinfo
+	$(MAKE) depend_local
+	$(MAKE) multi_version	
+	$(MAKE) alltargets INCLUDE_DEPS=1
+
+amtestfl:
+	$(MAKE) all_subdirs ARGS=amtestfl
+	$(MAKE) buildinfo
+	$(MAKE) depend_local
+	$(MAKE) multi_version
+	$(MAKE) alltargets INCLUDE_DEPS=1
+
+linearize:
+	$(MAKE) all_subdirs ARGS=linearize
+	$(MAKE) buildinfo
+	$(MAKE) depend_local
+	$(MAKE) multi_version
+	$(MAKE) alltargets INCLUDE_DEPS=1
+
+linearizefl:
+	$(MAKE) all_subdirs ARGS=linearizefl
+	$(MAKE) buildinfo
+	$(MAKE) depend_local
+	$(MAKE) multi_version
+	$(MAKE) alltargets INCLUDE_DEPS=1
+
+scgath:
+	$(MAKE) all_subdirs ARGS=scgath
+	$(MAKE) buildinfo
+	$(MAKE) depend_local
+	$(MAKE) multi_version
+	$(MAKE) alltargets INCLUDE_DEPS=1
+
+scgath2p:
+	$(MAKE) all_subdirs ARGS=scgath2p
+	$(MAKE) buildinfo
+	$(MAKE) depend_local
+	$(MAKE) multi_version
+	$(MAKE) alltargets INCLUDE_DEPS=1
+
+scgathfl:
+	$(MAKE) all_subdirs ARGS=scgathfl
+	$(MAKE) buildinfo
+	$(MAKE) depend_local
+	$(MAKE) multi_version
+	$(MAKE) alltargets INCLUDE_DEPS=1
+
+trans:
+	$(MAKE) all_subdirs ARGS=trans
+	$(MAKE) buildinfo
+	$(MAKE) depend_local
+	$(MAKE) multi_version
+	$(MAKE) alltargets INCLUDE_DEPS=1
+
+transfl:
+	$(MAKE) all_subdirs ARGS=transfl
+	$(MAKE) buildinfo
+	$(MAKE) depend_local
+	$(MAKE) multi_version
+	$(MAKE) alltargets INCLUDE_DEPS=1
+
+nonam:
+	$(MAKE) all_subdirs ARGS=nonam
+	$(MAKE) buildinfo
+	$(MAKE) depend_local
+	$(MAKE) multi_version
+	$(MAKE) alltargets INCLUDE_DEPS=1
+
+reduction:
+	$(MAKE) all_subdirs ARGS=reduction
+	$(MAKE) buildinfo
+	$(MAKE) depend_local
+	$(MAKE) multi_version
+	$(MAKE) alltargets INCLUDE_DEPS=1
+
+reductionfl:
+	$(MAKE) all_subdirs ARGS=reductionfl
+	$(MAKE) buildinfo
+	$(MAKE) depend_local
+	$(MAKE) multi_version
+	$(MAKE) alltargets INCLUDE_DEPS=1
+
+transpush:
+	$(MAKE) all_subdirs ARGS=transpush
+	$(MAKE) buildinfo
+	$(MAKE) depend_local
+	$(MAKE) multi_version
+	$(MAKE) alltargets INCLUDE_DEPS=1
+
+no_fldimm_bbranch:
+	$(MAKE) all_subdirs ARGS=no_fldimm_bbranch
+	$(MAKE) buildinfo
+	$(MAKE) depend_local
+	$(MAKE) multi_version
+	$(MAKE) alltargets INCLUDE_DEPS=1
+	
+all_subdirs: $(SUBDIRS)
+
+alltargets: $(TARGETS)
+
+$(SUBDIRS)::
+	$(MAKE) -C $@ $(ARGS) "OPT=$(OPT)"
+
+buildinfo:
+	$(ECHO) "Building in $(CURDIR) with options:"
+	$(ECHO) "     Make        : $(MAKE)"
+	$(ECHO) "     C compiler  : $(CC)"
+	$(ECHO) "     C++ compiler: $(CXX)"
+	$(ECHO) "     CFLAGS      : `$(PERL) $(TOOLS)/bin/format.pl $(CFLAGS)`"
+	$(ECHO) ""
+
+
+default:
+	$(ECHO) "What do you want to do?"
+	$(ECHO) "   all, clean, clobber, debug, depend, realclean"
+
+.SUFFIXES: .d
+
+ifndef OVERRIDE_DEFAULTS
+%.o: %.c $(DEPDIR)/%.d
+	$(ECHO) "Compiling $<"
+	$(CC) -c $(CFLAGS) $<
+
+%.o : %.cc $(DEPDIR)/%.d
+	$(ECHO) "Compiling $<"
+	$(CXX) -c $(CFLAGS) $<
+
+%.o : %.f
+	$(ECHO) "Compiling $<"
+	$(CC) -c $(CFLAGS) $<
+endif
+
+$(DEPDIR)/%.d: %.c
+	$(ECHO) "Deps for $<"
+	$(CCMKDEP) $(DEPFLAGS) $(CFLAGS) $< > $*.d
+	$(CP) $*.d $(DEPDIR)
+	$(SED) -e 's,^\(.*\)\.o:,'$(DEPDIR)'/\1.d:,' $*.d >> $(DEPDIR)/$*.d
+	$(RM) $*.d
+
+$(DEPDIR)/%.d: %.cc
+	$(ECHO) "Deps for $<"
+	$(CXXMKDEP) $(DEPFLAGS) $(CFLAGS) $< > $*.d
+	$(CP) $*.d $(DEPDIR)
+	$(SED) -e 's,^\(.*\)\.o:,'$(DEPDIR)'/\1.d:,' $*.d >> $(DEPDIR)/$*.d
+	$(RM) $*.d
+
+$(DEPDIR)/%.d: %.s
+	$(ECHO) "Deps for $<"
+	$(ECHO)  $*.o: $*.s > $*.d
+	$(CP) $*.d $(DEPDIR)
+	$(SED) -e 's,^\(.*\)\.o:,'$(DEPDIR)'/\1.d:,' $*.d >> $(DEPDIR)/$*.d
+	$(RM) $*.d
+
+$(DEPDIR)/%.d: %.f
+	$(ECHO) "Deps for $<"
+	/usr/bin/touch $(DEPDIR)/$*.d
+
+multi_version :
+ifeq ($(USE_IO_STANDARD),1)
+	-@if [ ! -e .IO_STD ] ; then $(RM) -f $(MULTI_VERSION_OBJ) .IO_ACT; fi 
+	-@$(ECHO) " " > .IO_STD
+endif
+ifeq ($(USE_IO_ACTIVEFABRIC),1)
+	-@if [ ! -e .IO_ACT ] ; then $(RM) -f $(MULTI_VERSION_OBJ) .IO_STD; fi
+	-@$(ECHO) " " > .IO_ACT
+endif
+
+.SILENT:
+.PHONY: all clean depend clobber undepend deps multi_version
+
+#
+#-- clean, clobber, realclean, nice
+#
+
+nice:
+	-$(RM) *~ \#* .\#* *.bak
+
+clean: nice
+	$(MAKE) clean_all ARGS=clean
+
+clean_all: $(SUBDIRS) clean_local
+
+clean_local:
+	$(ECHO) "Cleaning $(CURDIR)..."
+ifdef CLEANFILES
+	-$(RM) $(CLEANFILES) *~ *.bak
+endif
+
+clobber: 
+	$(MAKE) clobber_all ARGS=clobber
+
+clobber_all: $(SUBDIRS) clobber_local
+
+clobber_local: realclean_local
+ifdef TARGETS
+	$(ECHO) "Clobbering $(CURDIR)..."
+	-$(RM) $(TARGETS) *.d *.ld .IO_STD .IO_ACT
+endif
+
+realclean:
+	$(MAKE) realclean_all ARGS=realclean
+
+realclean_all: $(SUBDIRS) realclean_local
+
+realclean_local: clean_local
+	$(ECHO) "Cleaning deps in $(CURDIR)..."
+ifdef OFILES
+	-$(RM) $(addprefix $(DEPDIR)/,$(OFILES:.o=.d))
+endif
+	-if [ -d $(DEPDIR) ]; then $(RMDIR) $(DEPDIR); fi
+
+#
+#-- build dependencies
+#
+
+depend:
+	$(MAKE) depend_all ARGS=depend
+
+depend_all: $(SUBDIRS) depend_local
+
+depend_local:
+	if [ ! -d $(DEPDIR) ]; then $(MKDIR) $(DEPDIR); fi
+	$(MAKE) deps
+
+deps: $(addprefix $(DEPDIR)/,$(OFILES:.o=.d))
+
+commit:
+	cvs commit
+
+ifdef INCLUDE_DEPS
+ifdef OFILES
+include $(addprefix $(DEPDIR)/,$(OFILES:.o=.d))
+endif
+endif

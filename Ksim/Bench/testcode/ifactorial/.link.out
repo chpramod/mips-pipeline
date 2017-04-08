@@ -1,0 +1,13 @@
+mips-sgi-irix5-ld: Warning: type of symbol `main' changed from 1 to 2 in ifactorial.o
+mips-sgi-irix5-ld: Warning: type of symbol `exit' changed from 1 to 2 in cuexit.o
+mips-sgi-irix5-ld: Warning: type of symbol `__readenv_sigfpe' changed from 1 to 2 in stubfpestart.o
+mips-sgi-irix5-ld: Warning: type of symbol `_execve' changed from 1 to 2 in execve.o
+mips-sgi-irix5-ld: Warning: type of symbol `_cerror' changed from 1 to 2 in cerror.o
+mips-sgi-irix5-ld: Warning: type of symbol `_dssetlock' changed from 1 to 2 in ulocks.o
+mips-sgi-irix5-ld: Warning: type of symbol `_Psema' changed from 1 to 2 in usemas.o
+mips-sgi-irix5-ld: Warning: type of symbol `_CPsema' changed from 1 to 2 in usemas.o
+mips-sgi-irix5-ld: Warning: type of symbol `_Vsema' changed from 1 to 2 in usemas.o
+mips-sgi-irix5-ld: Warning: type of symbol `_dhwsetlock' changed from 1 to 2 in hlocks.o
+mips-sgi-irix5-ld: Warning: type of symbol `_dhsetlock' changed from 1 to 2 in hlocks.o
+mips-sgi-irix5-ld: Warning: type of symbol `_dhunsetlock' changed from 1 to 2 in hlocks.o
+mips-sgi-irix5-ld: Warning: type of symbol `_tenscale' changed from 1 to 2 in tenscale.o

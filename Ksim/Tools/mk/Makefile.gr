@@ -1,0 +1,24 @@
+#
+#  Standard Makefile
+#
+#  Defines a whole bunch of targets:
+#
+#   clean     -- removes $(OFILES), *~, *#, *.bak
+#   clobber   -- cleans, plus removes $(TARGETS)
+#   depend    -- generate dependencies
+#   realclean -- cleans plus deletes dependencies
+#
+#  $Id: Makefile.gr,v 1.1.1.1 2006/05/23 13:53:51 mainakc Exp $
+#
+
+ifndef SIMDIR
+SIMDIR=$(HOME)/Sim
+endif
+TOOLS=$(SIMDIR)/Tools
+
+GDEP:=$(SIMDIR)/lib/libgsim.a
+GLIB:=$(shell gtk-config --libs) -lgsim
+GINC1:=$(shell gtk-config --cflags)
+GINC=$(filter-out -I/usr/local/include, $(GINC1))
+
+include $(SIMDIR)/Tools/mk/Makefile.std

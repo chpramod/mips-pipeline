@@ -25,7 +25,7 @@ typedef unsigned Bool;
 #include "../../common/syscall.h"
 #include "queue.h"
 
-//#define MIPC_DEBUG 1
+#define MIPC_DEBUG 1
 
 class Mipc : public SimObject {
 public:
@@ -44,16 +44,88 @@ public:
 				// image if any.
 
    void MipcDumpstats();			// Prints simulation statistics
-   void Dec (unsigned int ins);			// Decoder function
+   void Dec (unsigned int ins,unsigned int pc);			// Decoder function
    void fake_syscall (unsigned int ins);	// System call interface
 
    /* processor state */
    unsigned int _ins;   // instruction register
-   Bool         _insValid;      // Needed for unpipelined design
-   Bool         _decodeValid;   // Needed for unpipelined design
-   Bool		_execValid;	// Needed for unpipelined design
-   Bool		_memValid;	// Needed for unpipelined design
-   Bool         _insDone;       // Needed for unpipelined design
+   // Bool         _insValid;      // Needed for unpipelined design
+   // Bool         _decodeValid;   // Needed for unpipelined design
+   // Bool		_execValid;	// Needed for unpipelined design
+   // Bool		_memValid;	// Needed for unpipelined design
+   // Bool         _insDone;       // Needed for unpipelined design
+
+   /* IF/ID register */
+   struct IF_ID_REG{
+      unsigned int _ins;
+      unsigned int _pc;
+   }if_id;
+
+   /* ID/EX register */
+   struct ID_EX_REG{
+      unsigned int _ins;
+      unsigned int _pc;
+      signed int  _decodedSRC1, _decodedSRC2;   // Reg fetch output (source values)
+      unsigned _decodedDST;         // Decoder output (dest reg no)
+      unsigned    _subregOperand;         // Needed for lwl and lwr
+      Bool  _memControl;         // Memory instruction?
+      Bool     _writeREG, _writeFREG;     // WB control
+      signed int  _branchOffset;
+      Bool  _hiWPort, _loWPort;     // WB control
+      unsigned _decodedShiftAmt;    // Shift amount
+      unsigned int _lastbd;         // branch delay state
+      int      _bd;           // 1 if the next ins is delay slot
+      int      _btaken;          // taken branch (1 if taken, 0 if fall-through)
+      unsigned int   _btgt;            // branch target
+      Bool     _isSyscall;       // 1 if system call
+      Bool     _isIllegalOp;        // 1 if illegal opcode
+      void (*_opControl)(Mipc*, ID_EX_REG*,unsigned);
+   }id_ex;
+
+   /* EX/MEM register */
+   struct EX_MEM_REG{
+      unsigned int _ins;
+      unsigned int _pc;
+      signed int  _decodedSRC1, _decodedSRC2;   // Reg fetch output (source values)
+      unsigned _decodedDST;         // Decoder output (dest reg no)
+      unsigned    _subregOperand;         // Needed for lwl and lwr
+      unsigned _MAR;          // Memory address register
+      unsigned _opResultHi, _opResultLo;  // Result of operation
+      Bool  _memControl;         // Memory instruction?
+      Bool     _writeREG, _writeFREG;     // WB control
+      signed int  _branchOffset;
+      Bool  _hiWPort, _loWPort;     // WB control
+      unsigned _decodedShiftAmt;    // Shift amount
+      unsigned int _hi, _lo;        // mult, div destination
+      unsigned int _lastbd;         // branch delay state
+      int      _btaken;          // taken branch (1 if taken, 0 if fall-through)
+      int      _bd;           // 1 if the next ins is delay slot
+      unsigned int   _btgt;            // branch target
+      Bool     _isSyscall;       // 1 if system call
+      Bool     _isIllegalOp;        // 1 if illegal opcode
+   }ex_mem;
+
+   /* MEM/WB register */
+   struct MEM_WB_REG{
+      unsigned int _ins;
+      unsigned int _pc;
+      signed int  _decodedSRC1, _decodedSRC2;   // Reg fetch output (source values)
+      unsigned _decodedDST;         // Decoder output (dest reg no)
+      unsigned    _subregOperand;         // Needed for lwl and lwr
+      unsigned _MAR;          // Memory address register
+      unsigned _opResultHi, _opResultLo;  // Result of operation
+      Bool  _memControl;         // Memory instruction?
+      Bool     _writeREG, _writeFREG;     // WB control
+      signed int  _branchOffset;
+      Bool  _hiWPort, _loWPort;     // WB control
+      unsigned _decodedShiftAmt;    // Shift amount
+      unsigned int _hi, _lo;        // mult, div destination
+      int      _btaken;          // taken branch (1 if taken, 0 if fall-through)
+      int      _bd;           // 1 if the next ins is delay slot
+      unsigned int   _btgt;            // branch target
+      Bool     _isSyscall;       // 1 if system call
+      Bool     _isIllegalOp;        // 1 if illegal opcode
+   }mem_wb;
 
    signed int	_decodedSRC1, _decodedSRC2;	// Reg fetch output (source values)
    unsigned	_decodedDST;			// Decoder output (dest reg no)
@@ -76,12 +148,12 @@ public:
 
    unsigned int _hi, _lo; 			// mult, div destination
    unsigned int	_pc;				// Program counter
-   unsigned int _lastbd;			// branch delay state
+   unsigned int _lastbd;//			// branch delay state
    unsigned int _boot;				// boot code loaded?
 
-   int 		_btaken; 			// taken branch (1 if taken, 0 if fall-through)
-   int 		_bd;				// 1 if the next ins is delay slot
-   unsigned int	_btgt;				// branch target
+   int 		_btaken;// 			// taken branch (1 if taken, 0 if fall-through)
+   int 		_bd;//				// 1 if the next ins is delay slot
+   unsigned int	_btgt;//				// branch target
 
    Bool		_isSyscall;			// 1 if system call
    Bool		_isIllegalOp;			// 1 if illegal opcode
@@ -101,7 +173,7 @@ public:
    Log	_l;
    int  _sim_exit;		// 1 on normal termination
 
-   void (*_opControl)(Mipc*, unsigned);
+   void (*_opControl)(Mipc*,ID_EX_REG*,unsigned);
    void (*_memOp)(Mipc*);
 
    FILE *_debugLog;

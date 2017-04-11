@@ -32,22 +32,23 @@ Mipc::MainLoop (void)
 
    while (!_sim_exit) {
      AWAIT_P_PHI0;	// @posedge
-     if (_insDone) {
+     // if (_insDone) {
         addr = _pc;
         ins = _mem->BEGetWord (addr, _mem->Read(addr & ~(LL)0x7));
         AWAIT_P_PHI1;	// @negedge
 #ifdef MIPC_DEBUG
         fprintf(_debugLog, "<%llu> Fetched ins %#x from PC %#x\n", SIM_TIME, ins, _pc);
 #endif
-        _ins = ins;
-        _insValid = TRUE;
-        _insDone = FALSE;
+        if_id._ins = ins;
+        if_id._pc = _pc;
+        // _insValid = TRUE;
+        // _insDone = FALSE;
         _nfetched++;
-        _bd = 0;
-     }
-     else {
-        PAUSE(1);
-     }
+        // _bd = 0;
+     // }
+     // else {
+        // PAUSE(1);
+     // }
    }
 
    MipcDumpstats();
@@ -123,11 +124,11 @@ Mipc::Reboot (char *image)
 
       // Reset state
       _ins = 0;
-      _insValid = FALSE;
-      _decodeValid = FALSE;
-      _execValid = FALSE;
-      _memValid = FALSE;
-      _insDone = TRUE;
+      // _insValid = FALSE;
+      // _decodeValid = FALSE;
+      // _execValid = FALSE;
+      // _memValid = FALSE;
+      // _insDone = TRUE;
 
       _num_load = 0;
       _num_store = 0;
@@ -136,10 +137,10 @@ Mipc::Reboot (char *image)
       _num_jal = 0;
       _num_jr = 0;
 
-      _lastbd = 0;
-      _bd = 0;
-      _btaken = 0;
-      _btgt = 0xdeadbeef;
+      _lastbd = 0; //
+      _bd = 0;  //
+      _btaken = 0;  //
+      _btgt = 0xdeadbeef; //
       _sim_exit = 0;
       _pc = ParamGetInt ("Mipc.BootPC");	// Boom! GO
    }

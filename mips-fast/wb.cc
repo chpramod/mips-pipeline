@@ -33,7 +33,8 @@ Writeback::MainLoop (void)
             fprintf(_mc->_debugLog, "<%llu> SYSCALL! Trapping to emulation layer at PC %#x\n", SIM_TIME, copied_mem_wb->_pc);
 #endif      
             copied_mem_wb->_opControl(_mc,(ID_EX_REG*)NULL, copied_mem_wb->_ins);
-            _mc->_pc += 4;
+            _mc->_pc = copied_mem_wb->_pc + 4;
+            _mc->got_syscall = FALSE;
          }
          else if (copied_mem_wb->_isIllegalOp) {
             printf("Illegal ins %#x at PC %#x. Terminating simulation!\n",copied_mem_wb->_ins, copied_mem_wb->_pc);

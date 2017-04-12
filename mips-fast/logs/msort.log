@@ -1,0 +1,15 @@
+85515 0:<FETCH> 
+85515 0:<FETCH> ************************************************************
+85515 0:<FETCH> 
+85515 0:<FETCH> Number of instructions: 17103
+85515 0:<FETCH> Number of simulated cycles: 85515
+85515 0:<FETCH> CPI: 5.00
+85515 0:<FETCH> Int Conditional Branches: 3121
+85515 0:<FETCH> Jump and Link: 26
+85515 0:<FETCH> Jump Register: 23
+85515 0:<FETCH> Number of fp instructions: 2
+85515 0:<FETCH> Number of loads: 1754
+85515 0:<FETCH> Number of syscall emulated loads: 69
+85515 0:<FETCH> Number of stores: 890
+85515 0:<FETCH> Number of syscall emulated stores: 47
+85515 0:<FETCH> 

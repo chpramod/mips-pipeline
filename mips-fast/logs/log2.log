@@ -1,0 +1,15 @@
+9975 0:<FETCH> 
+9975 0:<FETCH> ************************************************************
+9975 0:<FETCH> 
+9975 0:<FETCH> Number of instructions: 1995
+9975 0:<FETCH> Number of simulated cycles: 9975
+9975 0:<FETCH> CPI: 5.00
+9975 0:<FETCH> Int Conditional Branches: 411
+9975 0:<FETCH> Jump and Link: 31
+9975 0:<FETCH> Jump Register: 29
+9975 0:<FETCH> Number of fp instructions: 2
+9975 0:<FETCH> Number of loads: 319
+9975 0:<FETCH> Number of syscall emulated loads: 56
+9975 0:<FETCH> Number of stores: 130
+9975 0:<FETCH> Number of syscall emulated stores: 45
+9975 0:<FETCH> 

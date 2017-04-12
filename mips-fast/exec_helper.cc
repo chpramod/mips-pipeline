@@ -120,14 +120,22 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
    unsigned int ar1, ar2, s1, s2, r1, r2, t1, t2;
    LL addr;
    unsigned int val;
+   unsigned int src_reg1, src_reg2,subreg,fpt_src_reg;
+   Bool is_fpt; 
+
    LL value, mask;
    int sa,j;
    Word dummy;
    _bd = 0;
    _btaken = 0;
    _btgt = 0xdeadbeef;
+   src_reg1 = 10000;
+   src_reg2 = 10000;
+   fpt_src_reg = 10000;
+   subreg = 10000;
    _isIllegalOp = FALSE;
    _isSyscall = FALSE;
+   is_fpt = FALSE;
    i.data = ins;
   
 #define SIGN_EXTEND_BYTE(x)  do { x <<= 24; x >>= 24; } while (0)
@@ -139,6 +147,8 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
       _decodedSRC1 = _gpr[i.reg.rs];
       _decodedSRC2 = _gpr[i.reg.rt];
       _decodedDST = i.reg.rd;
+      src_reg1 = i.reg.rs;
+      src_reg2 = i.reg.rt;
       _writeREG = TRUE;
       _writeFREG = FALSE;
       _hiWPort = FALSE;
@@ -287,6 +297,7 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
          _writeREG = FALSE;
          _writeFREG = FALSE;
          _isSyscall = TRUE;
+
 	 break;
 
       default:
@@ -304,6 +315,7 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
       _decodedSRC1 = _gpr[i.imm.rs];
       _decodedSRC2 = i.imm.imm;
       _decodedDST = i.imm.rt;
+      src_reg1 = i.imm.rs;
       _writeREG = TRUE;
        _writeFREG = FALSE;
       _hiWPort = FALSE;
@@ -316,6 +328,7 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
       _decodedSRC1 = _gpr[i.imm.rs];
       _decodedSRC2 = i.imm.imm;
       _decodedDST = i.imm.rt;
+      src_reg1 = i.imm.rs;
       _writeREG = TRUE;
       _writeFREG = FALSE;
       _hiWPort = FALSE;
@@ -339,6 +352,7 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
       _decodedSRC1 = _gpr[i.imm.rs];
       _decodedSRC2 = i.imm.imm;
       _decodedDST = i.imm.rt;
+      src_reg1 = i.imm.rs;
       _writeREG = TRUE;
       _writeFREG = FALSE;
       _hiWPort = FALSE;
@@ -351,6 +365,7 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
       _decodedSRC1 = _gpr[i.imm.rs];
       _decodedSRC2 = i.imm.imm;
       _decodedDST = i.imm.rt;
+      src_reg1 = i.imm.rs;
       _writeREG = TRUE;
       _writeFREG = FALSE;
       _hiWPort = FALSE;
@@ -363,6 +378,7 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
       _decodedSRC1 = _gpr[i.imm.rs];
       _decodedSRC2 = i.imm.imm;
       _decodedDST = i.imm.rt;
+      src_reg1 = i.imm.rs;
       _writeREG = TRUE;
       _writeFREG = FALSE;
       _hiWPort = FALSE;
@@ -375,6 +391,7 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
       _decodedSRC1 = _gpr[i.imm.rs];
       _decodedSRC2 = i.imm.imm;
       _decodedDST = i.imm.rt;
+      src_reg1 = i.imm.rs;
       _writeREG = TRUE;
       _writeFREG = FALSE;
       _hiWPort = FALSE;
@@ -387,6 +404,8 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
       _decodedSRC1 = _gpr[i.imm.rs];
       _decodedSRC2 = _gpr[i.imm.rt];
       _branchOffset = i.imm.imm;
+      src_reg1 = i.imm.rs;
+      src_reg2 = i.imm.rt;
       _writeREG = FALSE;
       _writeFREG = FALSE;
       _hiWPort = FALSE;
@@ -399,6 +418,7 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
       // REGIMM
       _decodedSRC1 = _gpr[i.reg.rs];
       _branchOffset = i.imm.imm;
+      src_reg1 = i.reg.rs;
       _writeREG = FALSE;
       _writeFREG = FALSE;
       _hiWPort = FALSE;
@@ -439,6 +459,7 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
    case 7:			// bgtz
       _opControl = func_bgtz;
       _decodedSRC1 = _gpr[i.reg.rs];
+      src_reg1 = i.reg.rs;
       _branchOffset = i.imm.imm;
       _writeREG = FALSE;
       _writeFREG = FALSE;
@@ -451,6 +472,7 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
    case 6:			// blez
       _opControl = func_blez;
       _decodedSRC1 = _gpr[i.reg.rs];
+      src_reg1 = i.reg.rs;
       _branchOffset = i.imm.imm;
       _writeREG = FALSE;
       _writeFREG = FALSE;
@@ -464,6 +486,8 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
       _opControl = func_bne;
       _decodedSRC1 = _gpr[i.reg.rs];
       _decodedSRC2 = _gpr[i.reg.rt];
+      src_reg1 = i.reg.rs;
+      src_reg2 = i.reg.rt;
       _branchOffset = i.imm.imm;
       _writeREG = FALSE;
       _writeFREG = FALSE;
@@ -502,6 +526,7 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
       _decodedSRC1 = _gpr[i.reg.rs];
       _decodedSRC2 = i.imm.imm;
       _decodedDST = i.reg.rt;
+      src_reg1 = i.reg.rs;
       _writeREG = TRUE;
       _writeFREG = FALSE;
       _hiWPort = FALSE;
@@ -515,6 +540,7 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
       _decodedSRC1 = _gpr[i.reg.rs];
       _decodedSRC2 = i.imm.imm;
       _decodedDST = i.reg.rt;
+      src_reg1 = i.reg.rs;
       _writeREG = TRUE;
       _writeFREG = FALSE;
       _hiWPort = FALSE;
@@ -528,6 +554,7 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
       _decodedSRC1 = _gpr[i.reg.rs];
       _decodedSRC2 = i.imm.imm;
       _decodedDST = i.reg.rt;
+      src_reg1 = i.reg.rs;
       _writeREG = TRUE;
       _writeFREG = FALSE;
       _hiWPort = FALSE;
@@ -541,6 +568,7 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
       _decodedSRC1 = _gpr[i.reg.rs];
       _decodedSRC2 = i.imm.imm;
       _decodedDST = i.reg.rt;
+      src_reg1 = i.reg.rs;
       _writeREG = TRUE;
       _writeFREG = FALSE;
       _hiWPort = FALSE;
@@ -555,6 +583,8 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
       _decodedSRC2 = i.imm.imm;
       _subregOperand = _gpr[i.reg.rt];
       _decodedDST = i.reg.rt;
+      src_reg1 = i.reg.rs;
+      subreg = i.reg.rt;
       _writeREG = TRUE;
       _writeFREG = FALSE;
       _hiWPort = FALSE;
@@ -568,6 +598,7 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
       _decodedSRC1 = _gpr[i.reg.rs];
       _decodedSRC2 = i.imm.imm;
       _decodedDST = i.reg.rt;
+      src_reg1 = i.reg.rs;
       _writeREG = TRUE;
       _writeFREG = FALSE;
       _hiWPort = FALSE;
@@ -582,6 +613,8 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
       _decodedSRC2 = i.imm.imm;
       _subregOperand = _gpr[i.reg.rt];
       _decodedDST = i.reg.rt;
+      src_reg1 = i.reg.rs;
+      subreg = i.reg.rt;
       _writeREG = TRUE;
       _writeFREG = FALSE;
       _hiWPort = FALSE;
@@ -595,6 +628,7 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
       _decodedSRC1 = _gpr[i.reg.rs];
       _decodedSRC2 = i.imm.imm;
       _decodedDST = i.reg.rt;
+      src_reg1 = i.reg.rs;
       _writeREG = FALSE;
       _writeFREG = TRUE;
       _hiWPort = FALSE;
@@ -608,6 +642,7 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
       _decodedSRC1 = _gpr[i.reg.rs];
       _decodedSRC2 = i.imm.imm;
       _decodedDST = i.reg.rt;
+      src_reg1 = i.reg.rs;
       _writeREG = FALSE;
       _writeFREG = FALSE;
       _hiWPort = FALSE;
@@ -621,6 +656,7 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
       _decodedSRC1 = _gpr[i.reg.rs];
       _decodedSRC2 = i.imm.imm;
       _decodedDST = i.reg.rt;
+      src_reg1 = i.reg.rs;
       _writeREG = FALSE;
       _writeFREG = FALSE;
       _hiWPort = FALSE;
@@ -634,6 +670,7 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
       _decodedSRC1 = _gpr[i.reg.rs];
       _decodedSRC2 = i.imm.imm;
       _decodedDST = i.reg.rt;
+      src_reg1 = i.reg.rs;
       _writeREG = FALSE;
       _writeFREG = FALSE;
       _hiWPort = FALSE;
@@ -647,6 +684,7 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
       _decodedSRC1 = _gpr[i.reg.rs];
       _decodedSRC2 = i.imm.imm;
       _decodedDST = i.reg.rt;
+      src_reg1 = i.reg.rs;
       _writeREG = FALSE;
       _writeFREG = FALSE;
       _hiWPort = FALSE;
@@ -660,6 +698,7 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
       _decodedSRC1 = _gpr[i.reg.rs];
       _decodedSRC2 = i.imm.imm;
       _decodedDST = i.reg.rt;
+      src_reg1 = i.reg.rs;
       _writeREG = FALSE;
       _writeFREG = FALSE;
       _hiWPort = FALSE;
@@ -673,6 +712,7 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
       _decodedSRC1 = _gpr[i.reg.rs];
       _decodedSRC2 = i.imm.imm;
       _decodedDST = i.reg.rt;
+      src_reg1 = i.reg.rs;
       _writeREG = FALSE;
       _writeFREG = FALSE;
       _hiWPort = FALSE;
@@ -687,6 +727,8 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
          _opControl = func_mtc1;
          _decodedSRC1 = _gpr[i.freg.ft];
          _decodedDST = i.freg.fs;
+          is_fpt = TRUE;
+          fpt_src_reg = i.freg.ft;
          _writeREG = FALSE;
          _writeFREG = TRUE;
          _hiWPort = FALSE;
@@ -698,6 +740,8 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
          _opControl = func_mfc1;
          _decodedSRC1 = _fpr[(i.freg.fs)>>1].l[FP_TWIDDLE^((i.freg.fs)&1)];
          _decodedDST = i.freg.ft;
+          is_fpt = TRUE;
+          fpt_src_reg = i.freg.fs;
          _writeREG = TRUE;
          _writeFREG = FALSE;
          _hiWPort = FALSE;
@@ -726,6 +770,10 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
    id_ex._decodedSRC1 = _decodedSRC1;
    id_ex._decodedSRC2 = _decodedSRC2;
    id_ex._decodedDST = _decodedDST;
+   id_ex.src_reg1 = src_reg1;
+   id_ex.src_reg2 = src_reg2;
+   id_ex.fpt_src_reg = fpt_src_reg;
+   id_ex.is_fpt = is_fpt;
    id_ex._subregOperand = _subregOperand; 
    id_ex._memControl = _memControl;   
    id_ex._writeREG = _writeREG;

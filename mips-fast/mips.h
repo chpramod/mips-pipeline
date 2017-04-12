@@ -64,6 +64,8 @@ struct EX_MEM_REG{
 struct ID_EX_REG{
    unsigned int _ins;
    unsigned int _pc;
+   unsigned int src_reg1, src_reg2, subreg,fpt_src_reg;
+   Bool is_fpt;
    signed int  _decodedSRC1, _decodedSRC2;   // Reg fetch output (source values)
    unsigned _decodedDST;         // Decoder output (dest reg no)
    unsigned    _subregOperand;         // Needed for lwl and lwr
@@ -102,6 +104,7 @@ struct MEM_WB_REG{
    Bool     _isIllegalOp;        // 1 if illegal opcode
    void (*_memOp)(Mipc*,EX_MEM_REG*);
    void (*_opControl)(Mipc*, ID_EX_REG*,unsigned);
+
 };
 
 class Mipc : public SimObject {
@@ -145,6 +148,9 @@ public:
    /* MEM/WB register */
    MEM_WB_REG mem_wb;
 
+   /* syscall handlers */
+   Bool got_syscall;
+   
    signed int	_decodedSRC1, _decodedSRC2;	// Reg fetch output (source values)
    unsigned	_decodedDST;			// Decoder output (dest reg no)
    unsigned 	_subregOperand;			// Needed for lwl and lwr

@@ -1,0 +1,15 @@
+35645 0:<FETCH> 
+35645 0:<FETCH> ************************************************************
+35645 0:<FETCH> 
+35645 0:<FETCH> Number of instructions: 7129
+35645 0:<FETCH> Number of simulated cycles: 35645
+35645 0:<FETCH> CPI: 5.00
+35645 0:<FETCH> Int Conditional Branches: 768
+35645 0:<FETCH> Jump and Link: 27
+35645 0:<FETCH> Jump Register: 25
+35645 0:<FETCH> Number of fp instructions: 2
+35645 0:<FETCH> Number of loads: 361
+35645 0:<FETCH> Number of syscall emulated loads: 85
+35645 0:<FETCH> Number of stores: 1142
+35645 0:<FETCH> Number of syscall emulated stores: 45
+35645 0:<FETCH> 

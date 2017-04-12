@@ -1,0 +1,15 @@
+403255 0:<FETCH> 
+403255 0:<FETCH> ************************************************************
+403255 0:<FETCH> 
+403255 0:<FETCH> Number of instructions: 80651
+403255 0:<FETCH> Number of simulated cycles: 403255
+403255 0:<FETCH> CPI: 5.00
+403255 0:<FETCH> Int Conditional Branches: 17002
+403255 0:<FETCH> Jump and Link: 1025
+403255 0:<FETCH> Jump Register: 1211
+403255 0:<FETCH> Number of fp instructions: 126
+403255 0:<FETCH> Number of loads: 14537
+403255 0:<FETCH> Number of syscall emulated loads: 2063
+403255 0:<FETCH> Number of stores: 6976
+403255 0:<FETCH> Number of syscall emulated stores: 49
+403255 0:<FETCH> 

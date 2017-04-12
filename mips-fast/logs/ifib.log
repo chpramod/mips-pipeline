@@ -1,0 +1,15 @@
+37265 0:<FETCH> 
+37265 0:<FETCH> ************************************************************
+37265 0:<FETCH> 
+37265 0:<FETCH> Number of instructions: 7453
+37265 0:<FETCH> Number of simulated cycles: 37265
+37265 0:<FETCH> CPI: 5.00
+37265 0:<FETCH> Int Conditional Branches: 1327
+37265 0:<FETCH> Jump and Link: 105
+37265 0:<FETCH> Jump Register: 114
+37265 0:<FETCH> Number of fp instructions: 28
+37265 0:<FETCH> Number of loads: 1205
+37265 0:<FETCH> Number of syscall emulated loads: 83
+37265 0:<FETCH> Number of stores: 714
+37265 0:<FETCH> Number of syscall emulated stores: 45
+37265 0:<FETCH> 

@@ -1,0 +1,15 @@
+8190 0:<FETCH> 
+8190 0:<FETCH> ************************************************************
+8190 0:<FETCH> 
+8190 0:<FETCH> Number of instructions: 1638
+8190 0:<FETCH> Number of simulated cycles: 8190
+8190 0:<FETCH> CPI: 5.00
+8190 0:<FETCH> Int Conditional Branches: 342
+8190 0:<FETCH> Jump and Link: 23
+8190 0:<FETCH> Jump Register: 19
+8190 0:<FETCH> Number of fp instructions: 2
+8190 0:<FETCH> Number of loads: 274
+8190 0:<FETCH> Number of syscall emulated loads: 59
+8190 0:<FETCH> Number of stores: 103
+8190 0:<FETCH> Number of syscall emulated stores: 47
+8190 0:<FETCH> 

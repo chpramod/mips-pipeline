@@ -11,80 +11,74 @@ void
 Writeback::MainLoop (void)
 {
    unsigned int ins;
-   Bool writeReg;
-   Bool writeFReg;
-   Bool loWPort;
-   Bool hiWPort;
-   Bool isSyscall;
-   Bool isIllegalOp;
-   unsigned decodedDST;
-   unsigned opResultLo, opResultHi;
+   MEM_WB_REG* copied_mem_wb = new MEM_WB_REG();
 
    while (1) {
       AWAIT_P_PHI0;	// @posedge
       // Sample the important signals
-      if (_mc->_memValid) {
-         writeReg = _mc->_writeREG;
-         writeFReg = _mc->_writeFREG;
-         loWPort = _mc->_loWPort;
-         hiWPort = _mc->_hiWPort;
-         decodedDST = _mc->_decodedDST;
-         opResultLo = _mc->_opResultLo;
-         opResultHi = _mc->_opResultHi;
-         isSyscall = _mc->_isSyscall;
-         isIllegalOp = _mc->_isIllegalOp;
-         ins = _mc->_ins;
-         AWAIT_P_PHI1;       // @negedge
-         if (isSyscall) {
+      // if (_mc->_memValid) {
+         // writeReg = _mc->_writeREG;
+         // writeFReg = _mc->_writeFREG;
+         // loWPort = _mc->_loWPort;
+         // hiWPort = _mc->_hiWPort;
+         // decodedDST = _mc->_decodedDST;
+         // opResultLo = _mc->_opResultLo;
+         // opResultHi = _mc->_opResultHi;
+         // isSyscall = _mc->_isSyscall;
+         // isIllegalOp = _mc->_isIllegalOp;
+         // ins = _mc->_ins;
+         *copied_mem_wb = _mc->mem_wb;
+         if (copied_mem_wb->_isSyscall) {
 #ifdef MIPC_DEBUG
-            fprintf(_mc->_debugLog, "<%llu> SYSCALL! Trapping to emulation layer at PC %#x\n", SIM_TIME, _mc->_pc);
+            fprintf(_mc->_debugLog, "<%llu> SYSCALL! Trapping to emulation layer at PC %#x\n", SIM_TIME, copied_mem_wb->_pc);
 #endif      
-            _mc->_opControl(_mc, ins);
+            copied_mem_wb->_opControl(_mc,(ID_EX_REG*)NULL, copied_mem_wb->_ins);
             _mc->_pc += 4;
          }
-         else if (isIllegalOp) {
-            printf("Illegal ins %#x at PC %#x. Terminating simulation!\n", ins, _mc->_pc);
+         else if (copied_mem_wb->_isIllegalOp) {
+            printf("Illegal ins %#x at PC %#x. Terminating simulation!\n",copied_mem_wb->_ins, copied_mem_wb->_pc);
 #ifdef MIPC_DEBUG
             fclose(_mc->_debugLog);
 #endif
             printf("Register state on termination:\n\n");
-            _mc->dumpregs();
+            _mc->dumpregs(copied_mem_wb);
             exit(0);
          }
          else {
-            if (writeReg) {
-               _mc->_gpr[decodedDST] = opResultLo;
+            if (copied_mem_wb->_writeREG) {
+               _mc->_gpr[copied_mem_wb->_decodedDST] = copied_mem_wb->_opResultLo;
 #ifdef MIPC_DEBUG
-               fprintf(_mc->_debugLog, "<%llu> Writing to reg %u, value: %#x\n", SIM_TIME, decodedDST, opResultLo);
+               fprintf(_mc->_debugLog, "<%llu> Writing to reg %u, value: %#x\n", SIM_TIME, copied_mem_wb->_decodedDST, copied_mem_wb->_opResultLo);
 #endif
             }
-            else if (writeFReg) {
-               _mc->_fpr[(decodedDST)>>1].l[FP_TWIDDLE^((decodedDST)&1)] = opResultLo;
+            else if (copied_mem_wb->_writeFREG) {
+               _mc->_fpr[(copied_mem_wb->_decodedDST)>>1].l[FP_TWIDDLE^((copied_mem_wb->_decodedDST)&1)] = copied_mem_wb->_opResultLo;
 #ifdef MIPC_DEBUG
-               fprintf(_mc->_debugLog, "<%llu> Writing to freg %u, value: %#x\n", SIM_TIME, decodedDST>>1, opResultLo);
+               fprintf(_mc->_debugLog, "<%llu> Writing to freg %u, value: %#x\n", SIM_TIME, copied_mem_wb->_decodedDST>>1, copied_mem_wb->_opResultLo);
 #endif
             }
-            else if (loWPort || hiWPort) {
-               if (loWPort) {
-                  _mc->_lo = opResultLo;
+            else if (copied_mem_wb->_loWPort || copied_mem_wb->_hiWPort) {
+               if (copied_mem_wb->_loWPort) {
+                  _mc->_lo = copied_mem_wb->_opResultLo;
 #ifdef MIPC_DEBUG
-                  fprintf(_mc->_debugLog, "<%llu> Writing to Lo, value: %#x\n", SIM_TIME, opResultLo);
+                  fprintf(_mc->_debugLog, "<%llu> Writing to Lo, value: %#x\n", SIM_TIME, copied_mem_wb->_opResultLo);
 #endif
                }
-               if (hiWPort) {
-                  _mc->_hi = opResultHi;
+               if (copied_mem_wb->_hiWPort) {
+                  _mc->_hi = copied_mem_wb->_opResultHi;
 #ifdef MIPC_DEBUG
-                  fprintf(_mc->_debugLog, "<%llu> Writing to Hi, value: %#x\n", SIM_TIME, opResultHi);
+                  fprintf(_mc->_debugLog, "<%llu> Writing to Hi, value: %#x\n", SIM_TIME, copied_mem_wb->_opResultHi);
 #endif
                }
             }
          }
          _mc->_gpr[0] = 0;
-         _mc->_memValid = FALSE;
-         _mc->_insDone = TRUE;
-      }
-      else {
-         PAUSE(1);
-      }
+         AWAIT_P_PHI1;       // @negedge
+         // _mc->_memValid = FALSE;
+         // _mc->_insDone = TRUE;
+      // }
+      // else {
+      //    PAUSE(1);
+      // }
    }
 }

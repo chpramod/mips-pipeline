@@ -12,7 +12,11 @@ Mipc::Mipc (Mem *m) : _l('M')
    assert(_debugLog != NULL);
 #endif
    
-   Reboot (ParamGetString ("Mipc.BootROM"));
+  Reboot (ParamGetString ("Mipc.BootROM"));
+  zeroOutIF_ID();
+  zeroOutID_EX();
+  zeroOutEX_MEM();
+  zeroOutMEM_WB();
 }
 
 Mipc::~Mipc (void)
@@ -33,14 +37,20 @@ Mipc::MainLoop (void)
    while (!_sim_exit) {
      AWAIT_P_PHI0;	// @posedge
      // if (_insDone) {
-        addr = _pc;
-        ins = _mem->BEGetWord (addr, _mem->Read(addr & ~(LL)0x7));
+        if(ex_mem._btaken){
+          _pc = ex_mem._btgt;          
+        }else{
+          _pc = _pc + 4;
+        }
+        
         AWAIT_P_PHI1;	// @negedge
+        ins = _mem->BEGetWord (addr, _mem->Read(addr & ~(LL)0x7));
 #ifdef MIPC_DEBUG
         fprintf(_debugLog, "<%llu> Fetched ins %#x from PC %#x\n", SIM_TIME, ins, _pc);
 #endif
         if_id._ins = ins;
         if_id._pc = _pc;
+        // _pc += 4;
         // _insValid = TRUE;
         // _insDone = FALSE;
         _nfetched++;
@@ -137,7 +147,6 @@ Mipc::Reboot (char *image)
       _num_jal = 0;
       _num_jr = 0;
 
-      _lastbd = 0; //
       _bd = 0;  //
       _btaken = 0;  //
       _btgt = 0xdeadbeef; //

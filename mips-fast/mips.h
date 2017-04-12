@@ -27,6 +27,83 @@ typedef unsigned Bool;
 
 #define MIPC_DEBUG 1
 
+struct ID_EX_REG;
+struct EX_MEM_REG;
+struct MEM_WB_REG;
+struct IF_ID_REG;
+
+struct IF_ID_REG{
+   unsigned int _ins;
+   unsigned int _pc;
+};
+
+/* EX/MEM register */
+struct EX_MEM_REG{
+   unsigned int _ins;
+   unsigned int _pc;
+   signed int  _decodedSRC1, _decodedSRC2;   // Reg fetch output (source values)
+   unsigned _decodedDST;         // Decoder output (dest reg no)
+   unsigned    _subregOperand;         // Needed for lwl and lwr
+   unsigned _MAR;          // Memory address register
+   unsigned _opResultHi, _opResultLo;  // Result of operation
+   Bool  _memControl;         // Memory instruction?
+   Bool     _writeREG, _writeFREG;     // WB control
+   signed int  _branchOffset;
+   Bool  _hiWPort, _loWPort;     // WB control
+   unsigned _decodedShiftAmt;    // Shift amount
+   unsigned int _hi, _lo;        // mult, div destination
+   int      _btaken;          // taken branch (1 if taken, 0 if fall-through)
+   int      _bd;           // 1 if the next ins is delay slot
+   unsigned int   _btgt;            // branch target
+   Bool     _isSyscall;       // 1 if system call
+   Bool     _isIllegalOp;        // 1 if illegal opcode
+   void (*_memOp)(Mipc*,EX_MEM_REG*);
+   void (*_opControl)(Mipc*, ID_EX_REG*,unsigned);
+};
+
+struct ID_EX_REG{
+   unsigned int _ins;
+   unsigned int _pc;
+   signed int  _decodedSRC1, _decodedSRC2;   // Reg fetch output (source values)
+   unsigned _decodedDST;         // Decoder output (dest reg no)
+   unsigned    _subregOperand;         // Needed for lwl and lwr
+   Bool  _memControl;         // Memory instruction?
+   Bool     _writeREG, _writeFREG;     // WB control
+   signed int  _branchOffset;
+   Bool  _hiWPort, _loWPort;     // WB control
+   unsigned _decodedShiftAmt;    // Shift amount
+   int      _bd;           // 1 if the next ins is delay slot
+   int      _btaken;          // taken branch (1 if taken, 0 if fall-through)
+   unsigned int   _btgt;            // branch target
+   Bool     _isSyscall;       // 1 if system call
+   Bool     _isIllegalOp;        // 1 if illegal opcode
+   void (*_opControl)(Mipc*, ID_EX_REG*,unsigned);
+   void (*_memOp)(Mipc*,EX_MEM_REG*);
+};
+
+struct MEM_WB_REG{
+   unsigned int _ins;
+   unsigned int _pc;
+   signed int  _decodedSRC1, _decodedSRC2;   // Reg fetch output (source values)
+   unsigned _decodedDST;         // Decoder output (dest reg no)
+   unsigned    _subregOperand;         // Needed for lwl and lwr
+   unsigned _MAR;          // Memory address register
+   unsigned _opResultHi, _opResultLo;  // Result of operation
+   Bool  _memControl;         // Memory instruction?
+   Bool     _writeREG, _writeFREG;     // WB control
+   signed int  _branchOffset;
+   Bool  _hiWPort, _loWPort;     // WB control
+   unsigned _decodedShiftAmt;    // Shift amount
+   unsigned int _hi, _lo;        // mult, div destination
+   int      _btaken;          // taken branch (1 if taken, 0 if fall-through)
+   int      _bd;           // 1 if the next ins is delay slot
+   unsigned int   _btgt;            // branch target
+   Bool     _isSyscall;       // 1 if system call
+   Bool     _isIllegalOp;        // 1 if illegal opcode
+   void (*_memOp)(Mipc*,EX_MEM_REG*);
+   void (*_opControl)(Mipc*, ID_EX_REG*,unsigned);
+};
+
 class Mipc : public SimObject {
 public:
    Mipc (Mem *m);
@@ -36,7 +113,7 @@ public:
 
    MipcSysCall *_sys;		// Emulated system call layer
 
-   void dumpregs (void);	// Dumps current register state
+   void dumpregs (MEM_WB_REG*);	// Dumps current register state
 
    void Reboot (char *image = NULL);
 				// Restart processor.
@@ -56,76 +133,17 @@ public:
    // Bool         _insDone;       // Needed for unpipelined design
 
    /* IF/ID register */
-   struct IF_ID_REG{
-      unsigned int _ins;
-      unsigned int _pc;
-   }if_id;
+   IF_ID_REG if_id;
 
    /* ID/EX register */
-   struct ID_EX_REG{
-      unsigned int _ins;
-      unsigned int _pc;
-      signed int  _decodedSRC1, _decodedSRC2;   // Reg fetch output (source values)
-      unsigned _decodedDST;         // Decoder output (dest reg no)
-      unsigned    _subregOperand;         // Needed for lwl and lwr
-      Bool  _memControl;         // Memory instruction?
-      Bool     _writeREG, _writeFREG;     // WB control
-      signed int  _branchOffset;
-      Bool  _hiWPort, _loWPort;     // WB control
-      unsigned _decodedShiftAmt;    // Shift amount
-      unsigned int _lastbd;         // branch delay state
-      int      _bd;           // 1 if the next ins is delay slot
-      int      _btaken;          // taken branch (1 if taken, 0 if fall-through)
-      unsigned int   _btgt;            // branch target
-      Bool     _isSyscall;       // 1 if system call
-      Bool     _isIllegalOp;        // 1 if illegal opcode
-      void (*_opControl)(Mipc*, ID_EX_REG*,unsigned);
-   }id_ex;
+   ID_EX_REG empty_id_ex;
+   ID_EX_REG id_ex;
 
    /* EX/MEM register */
-   struct EX_MEM_REG{
-      unsigned int _ins;
-      unsigned int _pc;
-      signed int  _decodedSRC1, _decodedSRC2;   // Reg fetch output (source values)
-      unsigned _decodedDST;         // Decoder output (dest reg no)
-      unsigned    _subregOperand;         // Needed for lwl and lwr
-      unsigned _MAR;          // Memory address register
-      unsigned _opResultHi, _opResultLo;  // Result of operation
-      Bool  _memControl;         // Memory instruction?
-      Bool     _writeREG, _writeFREG;     // WB control
-      signed int  _branchOffset;
-      Bool  _hiWPort, _loWPort;     // WB control
-      unsigned _decodedShiftAmt;    // Shift amount
-      unsigned int _hi, _lo;        // mult, div destination
-      unsigned int _lastbd;         // branch delay state
-      int      _btaken;          // taken branch (1 if taken, 0 if fall-through)
-      int      _bd;           // 1 if the next ins is delay slot
-      unsigned int   _btgt;            // branch target
-      Bool     _isSyscall;       // 1 if system call
-      Bool     _isIllegalOp;        // 1 if illegal opcode
-   }ex_mem;
+   EX_MEM_REG ex_mem;
 
    /* MEM/WB register */
-   struct MEM_WB_REG{
-      unsigned int _ins;
-      unsigned int _pc;
-      signed int  _decodedSRC1, _decodedSRC2;   // Reg fetch output (source values)
-      unsigned _decodedDST;         // Decoder output (dest reg no)
-      unsigned    _subregOperand;         // Needed for lwl and lwr
-      unsigned _MAR;          // Memory address register
-      unsigned _opResultHi, _opResultLo;  // Result of operation
-      Bool  _memControl;         // Memory instruction?
-      Bool     _writeREG, _writeFREG;     // WB control
-      signed int  _branchOffset;
-      Bool  _hiWPort, _loWPort;     // WB control
-      unsigned _decodedShiftAmt;    // Shift amount
-      unsigned int _hi, _lo;        // mult, div destination
-      int      _btaken;          // taken branch (1 if taken, 0 if fall-through)
-      int      _bd;           // 1 if the next ins is delay slot
-      unsigned int   _btgt;            // branch target
-      Bool     _isSyscall;       // 1 if system call
-      Bool     _isIllegalOp;        // 1 if illegal opcode
-   }mem_wb;
+   MEM_WB_REG mem_wb;
 
    signed int	_decodedSRC1, _decodedSRC2;	// Reg fetch output (source values)
    unsigned	_decodedDST;			// Decoder output (dest reg no)
@@ -148,7 +166,6 @@ public:
 
    unsigned int _hi, _lo; 			// mult, div destination
    unsigned int	_pc;				// Program counter
-   unsigned int _lastbd;//			// branch delay state
    unsigned int _boot;				// boot code loaded?
 
    int 		_btaken;// 			// taken branch (1 if taken, 0 if fall-through)
@@ -174,88 +191,94 @@ public:
    int  _sim_exit;		// 1 on normal termination
 
    void (*_opControl)(Mipc*,ID_EX_REG*,unsigned);
-   void (*_memOp)(Mipc*);
+   void (*_memOp)(Mipc*,EX_MEM_REG*);
 
    FILE *_debugLog;
 
    // EXE stage definitions
 
-   static void func_add_addu (Mipc*, unsigned);
-   static void func_and (Mipc*, unsigned);
-   static void func_nor (Mipc*, unsigned);
-   static void func_or (Mipc*, unsigned);
-   static void func_sll (Mipc*, unsigned);
-   static void func_sllv (Mipc*, unsigned);
-   static void func_slt (Mipc*, unsigned);
-   static void func_sltu (Mipc*, unsigned);
-   static void func_sra (Mipc*, unsigned);
-   static void func_srav (Mipc*, unsigned);
-   static void func_srl (Mipc*, unsigned);
-   static void func_srlv (Mipc*, unsigned);
-   static void func_sub_subu (Mipc*, unsigned);
-   static void func_xor (Mipc*, unsigned);
-   static void func_div (Mipc*, unsigned);
-   static void func_divu (Mipc*, unsigned);
-   static void func_mfhi (Mipc*, unsigned);
-   static void func_mflo (Mipc*, unsigned);
-   static void func_mthi (Mipc*, unsigned);
-   static void func_mtlo (Mipc*, unsigned);
-   static void func_mult (Mipc*, unsigned);
-   static void func_multu (Mipc*, unsigned);
-   static void func_jalr (Mipc*, unsigned);
-   static void func_jr (Mipc*, unsigned);
-   static void func_await_break (Mipc*, unsigned);
-   static void func_syscall (Mipc*, unsigned);
-   static void func_addi_addiu (Mipc*, unsigned);
-   static void func_andi (Mipc*, unsigned);
-   static void func_lui (Mipc*, unsigned);
-   static void func_ori (Mipc*, unsigned);
-   static void func_slti (Mipc*, unsigned);
-   static void func_sltiu (Mipc*, unsigned);
-   static void func_xori (Mipc*, unsigned);
-   static void func_beq (Mipc*, unsigned);
-   static void func_bgez (Mipc*, unsigned);
-   static void func_bgezal (Mipc*, unsigned);
-   static void func_bltzal (Mipc*, unsigned);
-   static void func_bltz (Mipc*, unsigned);
-   static void func_bgtz (Mipc*, unsigned);
-   static void func_blez (Mipc*, unsigned);
-   static void func_bne (Mipc*, unsigned);
-   static void func_j (Mipc*, unsigned);
-   static void func_jal (Mipc*, unsigned);
-   static void func_lb (Mipc*, unsigned);
-   static void func_lbu (Mipc*, unsigned);
-   static void func_lh (Mipc*, unsigned);
-   static void func_lhu (Mipc*, unsigned);
-   static void func_lwl (Mipc*, unsigned);
-   static void func_lw (Mipc*, unsigned);
-   static void func_lwr (Mipc*, unsigned);
-   static void func_lwc1 (Mipc*, unsigned);
-   static void func_swc1 (Mipc*, unsigned);
-   static void func_sb (Mipc*, unsigned);
-   static void func_sh (Mipc*, unsigned);
-   static void func_swl (Mipc*, unsigned);
-   static void func_sw (Mipc*, unsigned);
-   static void func_swr (Mipc*, unsigned);
-   static void func_mtc1 (Mipc*, unsigned);
-   static void func_mfc1 (Mipc*, unsigned);
+   static void func_add_addu (Mipc*, ID_EX_REG*, unsigned);
+   static void func_and (Mipc*, ID_EX_REG*, unsigned);
+   static void func_nor (Mipc*, ID_EX_REG*, unsigned);
+   static void func_or (Mipc*, ID_EX_REG*, unsigned);
+   static void func_sll (Mipc*, ID_EX_REG*, unsigned);
+   static void func_sllv (Mipc*, ID_EX_REG*, unsigned);
+   static void func_slt (Mipc*, ID_EX_REG*, unsigned);
+   static void func_sltu (Mipc*, ID_EX_REG*, unsigned);
+   static void func_sra (Mipc*, ID_EX_REG*, unsigned);
+   static void func_srav (Mipc*, ID_EX_REG*, unsigned);
+   static void func_srl (Mipc*, ID_EX_REG*, unsigned);
+   static void func_srlv (Mipc*, ID_EX_REG*, unsigned);
+   static void func_sub_subu (Mipc*, ID_EX_REG*, unsigned);
+   static void func_xor (Mipc*, ID_EX_REG*, unsigned);
+   static void func_div (Mipc*, ID_EX_REG*, unsigned);
+   static void func_divu (Mipc*, ID_EX_REG*, unsigned);
+   static void func_mfhi (Mipc*, ID_EX_REG*, unsigned);
+   static void func_mflo (Mipc*, ID_EX_REG*, unsigned);
+   static void func_mthi (Mipc*, ID_EX_REG*, unsigned);
+   static void func_mtlo (Mipc*, ID_EX_REG*, unsigned);
+   static void func_mult (Mipc*, ID_EX_REG*, unsigned);
+   static void func_multu (Mipc*, ID_EX_REG*, unsigned);
+   static void func_jalr (Mipc*, ID_EX_REG*, unsigned);
+   static void func_jr (Mipc*, ID_EX_REG*, unsigned);
+   static void func_await_break (Mipc*, ID_EX_REG*, unsigned);
+   static void func_syscall (Mipc*, ID_EX_REG*, unsigned);
+   static void func_addi_addiu (Mipc*, ID_EX_REG*, unsigned);
+   static void func_andi (Mipc*, ID_EX_REG*, unsigned);
+   static void func_lui (Mipc*, ID_EX_REG*, unsigned);
+   static void func_ori (Mipc*, ID_EX_REG*, unsigned);
+   static void func_slti (Mipc*, ID_EX_REG*, unsigned);
+   static void func_sltiu (Mipc*, ID_EX_REG*, unsigned);
+   static void func_xori (Mipc*, ID_EX_REG*, unsigned);
+   static void func_beq (Mipc*, ID_EX_REG*, unsigned);
+   static void func_bgez (Mipc*, ID_EX_REG*, unsigned);
+   static void func_bgezal (Mipc*, ID_EX_REG*, unsigned);
+   static void func_bltzal (Mipc*, ID_EX_REG*, unsigned);
+   static void func_bltz (Mipc*, ID_EX_REG*, unsigned);
+   static void func_bgtz (Mipc*, ID_EX_REG*, unsigned);
+   static void func_blez (Mipc*, ID_EX_REG*, unsigned);
+   static void func_bne (Mipc*, ID_EX_REG*, unsigned);
+   static void func_j (Mipc*, ID_EX_REG*, unsigned);
+   static void func_jal (Mipc*, ID_EX_REG*, unsigned);
+   static void func_lb (Mipc*, ID_EX_REG*, unsigned);
+   static void func_lbu (Mipc*, ID_EX_REG*, unsigned);
+   static void func_lh (Mipc*, ID_EX_REG*, unsigned);
+   static void func_lhu (Mipc*, ID_EX_REG*, unsigned);
+   static void func_lwl (Mipc*, ID_EX_REG*, unsigned);
+   static void func_lw (Mipc*, ID_EX_REG*, unsigned);
+   static void func_lwr (Mipc*, ID_EX_REG*, unsigned);
+   static void func_lwc1 (Mipc*, ID_EX_REG*, unsigned);
+   static void func_swc1 (Mipc*, ID_EX_REG*, unsigned);
+   static void func_sb (Mipc*, ID_EX_REG*, unsigned);
+   static void func_sh (Mipc*, ID_EX_REG*, unsigned);
+   static void func_swl (Mipc*, ID_EX_REG*, unsigned);
+   static void func_sw (Mipc*, ID_EX_REG*, unsigned);
+   static void func_swr (Mipc*, ID_EX_REG*, unsigned);
+   static void func_mtc1 (Mipc*, ID_EX_REG*, unsigned);
+   static void func_mfc1 (Mipc*, ID_EX_REG*, unsigned);
 
    // MEM stage definitions
 
-   static void mem_lb (Mipc*);
-   static void mem_lbu (Mipc*);
-   static void mem_lh (Mipc*);
-   static void mem_lhu (Mipc*);
-   static void mem_lwl (Mipc*);
-   static void mem_lw (Mipc*);
-   static void mem_lwr (Mipc*);
-   static void mem_lwc1 (Mipc*);
-   static void mem_swc1 (Mipc*);
-   static void mem_sb (Mipc*);
-   static void mem_sh (Mipc*);
-   static void mem_swl (Mipc*);
-   static void mem_sw (Mipc*);
-   static void mem_swr (Mipc*);
+   static void mem_lb (Mipc*, EX_MEM_REG*);
+   static void mem_lbu (Mipc*, EX_MEM_REG*);
+   static void mem_lh (Mipc*, EX_MEM_REG*);
+   static void mem_lhu (Mipc*, EX_MEM_REG*);
+   static void mem_lwl (Mipc*, EX_MEM_REG*);
+   static void mem_lw (Mipc*, EX_MEM_REG*);
+   static void mem_lwr (Mipc*, EX_MEM_REG*);
+   static void mem_lwc1 (Mipc*, EX_MEM_REG*);
+   static void mem_swc1 (Mipc*, EX_MEM_REG*);
+   static void mem_sb (Mipc*, EX_MEM_REG*);
+   static void mem_sh (Mipc*, EX_MEM_REG*);
+   static void mem_swl (Mipc*, EX_MEM_REG*);
+   static void mem_sw (Mipc*, EX_MEM_REG*);
+   static void mem_swr (Mipc*, EX_MEM_REG*);
+
+   // Zero Out function
+   void zeroOutIF_ID();
+   void zeroOutID_EX();
+   void zeroOutEX_MEM();
+   void zeroOutMEM_WB();
 };
 
 

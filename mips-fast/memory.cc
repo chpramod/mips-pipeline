@@ -14,25 +14,78 @@ Memory::MainLoop (void)
 
    while (1) {
       AWAIT_P_PHI0;	// @posedge
-      if (_mc->_execValid) {
-         memControl = _mc->_memControl;
+         EX_MEM_REG *copied_ex_mem = new EX_MEM_REG();
+         copied_ex_mem->_ins    = _mc->mem_wb._ins;
+         copied_ex_mem->_pc    = _mc->mem_wb._pc;
+         copied_ex_mem->_decodedSRC1    = _mc->mem_wb._decodedSRC1;       
+         copied_ex_mem->_decodedSRC2    = _mc->mem_wb._decodedSRC2;     
+         copied_ex_mem->_decodedDST     = _mc->mem_wb._decodedDST;       
+         copied_ex_mem->_subregOperand  = _mc->mem_wb._subregOperand;      
+         copied_ex_mem->_memControl     = _mc->mem_wb._memControl;      
+         copied_ex_mem->_writeREG       = _mc->mem_wb._writeREG;          
+         copied_ex_mem->_writeFREG      = _mc->mem_wb._writeFREG;        
+         copied_ex_mem->_branchOffset   = _mc->mem_wb._branchOffset;       
+         copied_ex_mem->_hiWPort        = _mc->mem_wb._hiWPort;        
+         copied_ex_mem->_loWPort        = _mc->mem_wb._loWPort;         
+         copied_ex_mem->_decodedShiftAmt = _mc->mem_wb._decodedShiftAmt;          
+         copied_ex_mem->_bd             = _mc->mem_wb._bd;               
+         copied_ex_mem->_btaken         = _mc->mem_wb._btaken;        
+         copied_ex_mem->_btgt           = _mc->mem_wb._btgt;            
+         copied_ex_mem->_isSyscall      = _mc->mem_wb._isSyscall;       
+         copied_ex_mem->_isIllegalOp    = _mc->mem_wb._isIllegalOp; 
+         copied_ex_mem->_opControl      = _mc->mem_wb._opControl; 
+         copied_ex_mem->_memOp          = _mc->mem_wb._memOp;   
+         copied_ex_mem->_MAR            = _mc->mem_wb._MAR;
+         copied_ex_mem->_opResultHi     = _mc->mem_wb._opResultHi;
+         copied_ex_mem->_opResultLo     = _mc->mem_wb._opResultLo;
+         copied_ex_mem->_hi             = _mc->mem_wb._hi;
+         copied_ex_mem->_lo             = _mc->mem_wb._lo;
+        // copied_ex_mem->_lastbd         = _mc->mem_wb._lastbd;
+            
+      //if (_mc->_execValid) {
+      //   memControl = _mc->_memControl;
          AWAIT_P_PHI1;       // @negedge
-         if (memControl) {
-            _mc->_memOp (_mc);
+         if (copied_ex_mem->_memControl) {
+            copied_ex_mem->_memOp (_mc, copied_ex_mem);
 #ifdef MIPC_DEBUG
-            fprintf(_mc->_debugLog, "<%llu> Accessing memory at address %#x for ins %#x\n", SIM_TIME, _mc->_MAR, _mc->_ins);
+            fprintf(_mc->_debugLog, "<%llu> Accessing memory at address %#x for ins %#x\n", SIM_TIME, copied_ex_mem->_MAR, copied_ex_mem->_ins);
 #endif
          }
          else {
 #ifdef MIPC_DEBUG
-            fprintf(_mc->_debugLog, "<%llu> Memory has nothing to do for ins %#x\n", SIM_TIME, _mc->_ins);
+            fprintf(_mc->_debugLog, "<%llu> Memory has nothing to do for ins %#x\n", SIM_TIME, copied_ex_mem->_ins);
 #endif
          }
-         _mc->_execValid = FALSE;
-         _mc->_memValid = TRUE;
-      }
-      else {
-         PAUSE(1);
-      }
+
+         _mc->mem_wb._ins               =     copied_ex_mem->_ins              ;                                   
+         _mc->mem_wb._pc                =     copied_ex_mem->_pc               ;              
+         _mc->mem_wb._decodedSRC1       =     copied_ex_mem->_decodedSRC1      ;
+         _mc->mem_wb._decodedSRC2       =     copied_ex_mem->_decodedSRC2      ;
+         _mc->mem_wb._decodedDST        =     copied_ex_mem->_decodedDST       ;
+         _mc->mem_wb._subregOperand     =     copied_ex_mem->_subregOperand    ; 
+         _mc->mem_wb._memControl        =     copied_ex_mem->_memControl       ;
+         _mc->mem_wb._writeREG          =     copied_ex_mem->_writeREG         ;
+         _mc->mem_wb._writeFREG         =     copied_ex_mem->_writeFREG        ;
+         _mc->mem_wb._branchOffset      =     copied_ex_mem->_branchOffset     ; 
+         _mc->mem_wb._hiWPort           =     copied_ex_mem->_hiWPort          ; 
+         _mc->mem_wb._loWPort           =     copied_ex_mem->_loWPort          ;
+         _mc->mem_wb._decodedShiftAmt   =     copied_ex_mem->_decodedShiftAmt  ; 
+         _mc->mem_wb._bd                =     copied_ex_mem->_bd               ;
+         _mc->mem_wb._btaken            =     copied_ex_mem->_btaken           ;  
+         _mc->mem_wb._btgt              =     copied_ex_mem->_btgt             ;
+         _mc->mem_wb._isSyscall         =     copied_ex_mem->_isSyscall        ;
+         _mc->mem_wb._isIllegalOp       =     copied_ex_mem->_isIllegalOp      ;  
+         _mc->mem_wb._memOp             =     copied_ex_mem->_memOp            ;  
+         _mc->mem_wb._MAR               =     copied_ex_mem->_MAR              ;  
+         _mc->mem_wb._hi                =     copied_ex_mem->_hi               ; 
+         _mc->mem_wb._lo                =     copied_ex_mem->_lo               ; 
+         _mc->mem_wb._opControl         =     copied_ex_mem->_opControl        ; 
+
+//         _mc->_execValid = FALSE;
+//         _mc->_memValid = TRUE;
+      //}
+      //else {
+      //   PAUSE(1);
+      //}
    }
 }

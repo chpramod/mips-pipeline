@@ -104,7 +104,6 @@ struct MEM_WB_REG{
    Bool     _isIllegalOp;        // 1 if illegal opcode
    void (*_memOp)(Mipc*,EX_MEM_REG*);
    void (*_opControl)(Mipc*, ID_EX_REG*,unsigned);
-
 };
 
 class Mipc : public SimObject {
@@ -125,7 +124,7 @@ public:
 
    void MipcDumpstats();			// Prints simulation statistics
    void Dec (unsigned int ins,unsigned int pc);			// Decoder function
-   void fake_syscall (unsigned int ins);	// System call interface
+   void fake_syscall (unsigned int ins, unsigned int pc);	// System call interface
 
    /* processor state */
    unsigned int _ins;   // instruction register
@@ -150,6 +149,8 @@ public:
 
    /* syscall handlers */
    Bool got_syscall;
+   Bool got_branch;
+   Bool refetch;
    
    signed int	_decodedSRC1, _decodedSRC2;	// Reg fetch output (source values)
    unsigned	_decodedDST;			// Decoder output (dest reg no)

@@ -12,12 +12,14 @@ Exe::MainLoop (void)
 {
    unsigned int ins;
    Bool isSyscall, isIllegalOp;
-
+   Bool local_got_branch;
    while (1) {
       AWAIT_P_PHI0;  // @posedge
+         // PAUSE(30);
+         local_got_branch = _mc->got_branch;
          ID_EX_REG *copied_id_ex = new ID_EX_REG();
-         copied_id_ex->_ins    = _mc->id_ex._ins;
-         copied_id_ex->_pc    = _mc->id_ex._pc;
+         copied_id_ex->_ins            = _mc->id_ex._ins;
+         copied_id_ex->_pc             = _mc->id_ex._pc;
          copied_id_ex->_decodedSRC1    = _mc->id_ex._decodedSRC1;       
          copied_id_ex->_decodedSRC2    = _mc->id_ex._decodedSRC2;     
          copied_id_ex->_decodedDST     = _mc->id_ex._decodedDST;       
@@ -36,15 +38,32 @@ Exe::MainLoop (void)
          copied_id_ex->_isIllegalOp    = _mc->id_ex._isIllegalOp; 
          copied_id_ex->_opControl      = _mc->id_ex._opControl; 
          copied_id_ex->_memOp          = _mc->id_ex._memOp;   
-         AWAIT_P_PHI1;  // @negedge
+         // printf("EXEC : copying done\n");
+         // printf("EXEC : Ins:%#x PC:%#x\n",copied_id_ex->_ins, copied_id_ex->_pc);
+         AWAIT_P_PHI1;  // @negedge 
+
+          // printf("EXEC : %d %d %d %d\n",
+          //   copied_id_ex->_writeREG, 
+          //   copied_id_ex->_writeFREG, 
+          //   copied_id_ex->_loWPort, 
+          //   copied_id_ex->_hiWPort);
 
          if (!copied_id_ex->_isSyscall && !copied_id_ex->_isIllegalOp) {
-            copied_id_ex->_opControl(_mc,copied_id_ex,copied_id_ex->_ins);
+            // printf("EXEC : Valid non syscall function\n");
+            // printf("EXEC Result before %d\n",_mc->ex_mem._opResultLo);
+            if(copied_id_ex->_opControl != NULL)
+               copied_id_ex->_opControl(_mc,copied_id_ex,copied_id_ex->_ins);
+            // printf("<%llu> Executed ins %#x\n", SIM_TIME, copied_id_ex->_ins);
+            // printf("EXEC Result after %d\n",_mc->ex_mem._opResultLo);
+            if (local_got_branch == TRUE){
+               _mc->got_branch = FALSE;
+            }
 #ifdef MIPC_DEBUG
             fprintf(_mc->_debugLog, "<%llu> Executed ins %#x\n", SIM_TIME, copied_id_ex->_ins);
 #endif
          }
          else if (copied_id_ex->_isSyscall) {
+            // printf("EXEC PC: %#x\n",copied_id_ex->_pc);
 #ifdef MIPC_DEBUG
             fprintf(_mc->_debugLog, "<%llu> Deferring execution of syscall ins %#x\n", SIM_TIME, copied_id_ex->_ins);
 #endif
@@ -93,6 +112,11 @@ Exe::MainLoop (void)
          _mc->ex_mem._memOp             =     copied_id_ex->_memOp            ; 
          _mc->ex_mem._opControl         =     copied_id_ex->_opControl        ; 
 
+         // printf("EXEC_MEM: %d %d %d %d\n",
+         //    _mc->ex_mem._writeREG, 
+         //    _mc->ex_mem._writeFREG, 
+         //    _mc->ex_mem._loWPort, 
+         //    _mc->ex_mem._hiWPort);
 
       // }
       // else {

@@ -13,10 +13,6 @@ Mipc::Mipc (Mem *m) : _l('M')
 #endif
    
   Reboot (ParamGetString ("Mipc.BootROM"));
-  zeroOutIF_ID();
-  zeroOutID_EX();
-  zeroOutEX_MEM();
-  zeroOutMEM_WB();
 }
 
 Mipc::~Mipc (void)
@@ -29,7 +25,7 @@ Mipc::MainLoop (void)
 {
    LL addr;
    unsigned int ins;	// Local instruction register
-
+   unsigned int prev_pc;
    Assert (_boot, "Mipc::MainLoop() called without boot?");
 
    _nfetched = 0;
@@ -37,21 +33,33 @@ Mipc::MainLoop (void)
    while (!_sim_exit) {
      AWAIT_P_PHI0;	// @posedge
      // if (_insDone) {
-        if (got_syscall==FALSE){
-          if(ex_mem._btaken){
-            _pc = ex_mem._btgt;          
+        if (got_syscall==FALSE && got_branch==FALSE){
+          if(refetch==FALSE){
+            // printf("FETCH : Branch Taken: %d\n",ex_mem._btaken);
+            if(ex_mem._bd==1 && ex_mem._btaken){
+              _pc = ex_mem._btgt; 
+              // printf("THIS IS TAKEN : %#x\n", _pc);
+              // exit(0);
+            }
+          }else{
+            // printf("INSTR:%#x FETCH : Refetching\n",_pc);
+            _pc = prev_pc;
           }
-          // else{
-          //   _pc = _pc + 4;
-          // }
-          
+          addr = _pc;
+          // printf("PC : %#x FETCH\n",addr);
+            // else{
+            //   _pc = _pc + 4;
+            // }
+          // printf("FETCH pc : %#x prev pc: %#x\n",_pc, prev_pc);
           AWAIT_P_PHI1;	// @negedge
           ins = _mem->BEGetWord (addr, _mem->Read(addr & ~(LL)0x7));
+          // printf("<%llu> Fetched ins %#x from PC %#x\n", SIM_TIME, ins, _pc);
   #ifdef MIPC_DEBUG
           fprintf(_debugLog, "<%llu> Fetched ins %#x from PC %#x\n", SIM_TIME, ins, _pc);
   #endif
           if_id._ins = ins;
           if_id._pc = _pc;
+          prev_pc = _pc;
           _pc += 4;
           // _insValid = TRUE;
           // _insDone = FALSE;
@@ -60,6 +68,10 @@ Mipc::MainLoop (void)
        // }
         }
         else {
+          // printf("FETCH : Received System call PC: %#x, %llu\n",_pc-8,SIM_TIME);
+          // exit(0);
+          AWAIT_P_PHI1;
+          // printf("Not fetched\n");
           zeroOutIF_ID();
         }
    }
@@ -100,9 +112,9 @@ Mipc::MipcDumpstats()
 }
 
 void 
-Mipc::fake_syscall (unsigned int ins)
+Mipc::fake_syscall (unsigned int ins, unsigned int pc)
 {
-   _sys->pc = _pc;
+   _sys->pc = pc;
    _sys->quit = 0;
    _sys->EmulateSysCall ();
    if (_sys->quit)
@@ -143,6 +155,11 @@ Mipc::Reboot (char *image)
       // _memValid = FALSE;
       // _insDone = TRUE;
 
+      zeroOutIF_ID();
+      zeroOutID_EX();
+      zeroOutEX_MEM();
+      zeroOutMEM_WB();
+
       _num_load = 0;
       _num_store = 0;
       _fpinst = 0;
@@ -150,6 +167,8 @@ Mipc::Reboot (char *image)
       _num_jal = 0;
       _num_jr = 0;
       got_syscall = FALSE;
+      got_branch = FALSE;
+      refetch = FALSE;
       _bd = 0;  //
       _btaken = 0;  //
       _btgt = 0xdeadbeef; //

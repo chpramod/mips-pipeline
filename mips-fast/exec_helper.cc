@@ -137,10 +137,11 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
    _isSyscall = FALSE;
    is_fpt = FALSE;
    i.data = ins;
+   // printf("EXEC_HELPER : reg.op:%d reg.func:%d\n",i.reg.op,i.reg.func);
   
 #define SIGN_EXTEND_BYTE(x)  do { x <<= 24; x >>= 24; } while (0)
 #define SIGN_EXTEND_IMM(x)   do { x <<= 16; x >>= 16; } while (0)
-
+   // printf("PC : %#x i.reg.op %#x i.reg.func %#x i.reg.rt %#x \n",pc,i.reg.op, i.reg.func, i.reg.rt );
    switch (i.reg.op) {
    case 0:
       // SPECIAL (ALU format)
@@ -767,13 +768,17 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
       _memControl = FALSE;
       break;
    }
+
+   id_ex._ins = ins;
+   id_ex._pc = pc;
+   id_ex.src_reg1 = src_reg1;
+   id_ex.src_reg2 = src_reg2;
+   id_ex.subreg = subreg; 
+   id_ex.fpt_src_reg = fpt_src_reg;
+   id_ex.is_fpt = is_fpt;
    id_ex._decodedSRC1 = _decodedSRC1;
    id_ex._decodedSRC2 = _decodedSRC2;
    id_ex._decodedDST = _decodedDST;
-   id_ex.src_reg1 = src_reg1;
-   id_ex.src_reg2 = src_reg2;
-   id_ex.fpt_src_reg = fpt_src_reg;
-   id_ex.is_fpt = is_fpt;
    id_ex._subregOperand = _subregOperand; 
    id_ex._memControl = _memControl;   
    id_ex._writeREG = _writeREG;
@@ -789,6 +794,12 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
    id_ex._isIllegalOp = _isIllegalOp; 
    id_ex._opControl = _opControl;       
    id_ex._memOp = _memOp;
+
+    // printf("EXEC_HELPER : %d %d %d %d\n",
+    //         id_ex._writeREG, 
+    //         id_ex._writeFREG, 
+    //         id_ex._loWPort, 
+    //         id_ex._hiWPort);
 }
 
 
@@ -1041,7 +1052,9 @@ Mipc::func_await_break (Mipc *mc, ID_EX_REG* local_id_ex, unsigned ins)
 void
 Mipc::func_syscall (Mipc *mc, ID_EX_REG* local_id_ex, unsigned ins)
 {
-   mc->fake_syscall (ins);
+   // printf("FAKE!! PC : %#x\n",local_id_ex->_pc);
+   mc->fake_syscall (ins, local_id_ex->_pc);
+   // exit(0);
 }
 
 void

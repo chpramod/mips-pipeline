@@ -120,7 +120,7 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
    unsigned int ar1, ar2, s1, s2, r1, r2, t1, t2;
    LL addr;
    unsigned int val;
-   unsigned int src_reg1, src_reg2,subreg,fpt_src_reg;
+   unsigned int src_reg1, src_reg2,fpt_src_reg;
    Bool is_fpt; 
 
    LL value, mask;
@@ -132,7 +132,6 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
    src_reg1 = 10000;
    src_reg2 = 10000;
    fpt_src_reg = 10000;
-   subreg = 10000;
    _isIllegalOp = FALSE;
    _isSyscall = FALSE;
    is_fpt = FALSE;
@@ -585,7 +584,7 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
       _subregOperand = _gpr[i.reg.rt];
       _decodedDST = i.reg.rt;
       src_reg1 = i.reg.rs;
-      subreg = i.reg.rt;
+      src_reg2 = i.reg.rt;
       _writeREG = TRUE;
       _writeFREG = FALSE;
       _hiWPort = FALSE;
@@ -615,7 +614,7 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
       _subregOperand = _gpr[i.reg.rt];
       _decodedDST = i.reg.rt;
       src_reg1 = i.reg.rs;
-      subreg = i.reg.rt;
+      src_reg2 = i.reg.rt;
       _writeREG = TRUE;
       _writeFREG = FALSE;
       _hiWPort = FALSE;
@@ -773,7 +772,6 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
    id_ex._pc = pc;
    id_ex.src_reg1 = src_reg1;
    id_ex.src_reg2 = src_reg2;
-   id_ex.subreg = subreg; 
    id_ex.fpt_src_reg = fpt_src_reg;
    id_ex.is_fpt = is_fpt;
    id_ex._decodedSRC1 = _decodedSRC1;
@@ -1151,7 +1149,7 @@ Mipc::func_bltzal (Mipc *mc, ID_EX_REG* local_id_ex, unsigned ins)
 {
    mc->_num_cond_br++;
    local_id_ex->_btaken = (local_id_ex->_decodedSRC1 >> 31);
-   mc->ex_mem._opResultLo = mc->_pc + 8;
+   mc->ex_mem._opResultLo = local_id_ex->_pc + 8;
 }
 
 void
@@ -1348,13 +1346,13 @@ Mipc::mem_lb (Mipc *mc, EX_MEM_REG* local_ex_mem)
 
    a1 = mc->_mem->BEGetByte(local_ex_mem->_MAR, mc->_mem->Read(local_ex_mem->_MAR & ~(LL)0x7));
    SIGN_EXTEND_BYTE(a1);
-   mc->mem_wb._opResultLo = a1;
+   local_ex_mem->_opResultLo = a1;
 }
 
 void
 Mipc::mem_lbu (Mipc *mc, EX_MEM_REG* local_ex_mem)
 {
-   mc->mem_wb._opResultLo = mc->_mem->BEGetByte(local_ex_mem->_MAR, mc->_mem->Read(local_ex_mem->_MAR & ~(LL)0x7));
+   local_ex_mem->_opResultLo = mc->_mem->BEGetByte(local_ex_mem->_MAR, mc->_mem->Read(local_ex_mem->_MAR & ~(LL)0x7));
 }
 
 void
@@ -1364,13 +1362,13 @@ Mipc::mem_lh (Mipc *mc, EX_MEM_REG* local_ex_mem)
 
    a1 = mc->_mem->BEGetHalfWord(local_ex_mem->_MAR, mc->_mem->Read(local_ex_mem->_MAR & ~(LL)0x7));
    SIGN_EXTEND_IMM(a1);
-   mc->mem_wb._opResultLo = a1;
+   local_ex_mem->_opResultLo = a1;
 }
 
 void
 Mipc::mem_lhu (Mipc *mc, EX_MEM_REG* local_ex_mem)
 {
-   mc->mem_wb._opResultLo = mc->_mem->BEGetHalfWord (local_ex_mem->_MAR, mc->_mem->Read(local_ex_mem->_MAR & ~(LL)0x7));
+   local_ex_mem->_opResultLo = mc->_mem->BEGetHalfWord (local_ex_mem->_MAR, mc->_mem->Read(local_ex_mem->_MAR & ~(LL)0x7));
 }
 
 void
@@ -1381,13 +1379,13 @@ Mipc::mem_lwl (Mipc *mc, EX_MEM_REG* local_ex_mem)
 
    a1 = mc->_mem->BEGetWord (local_ex_mem->_MAR, mc->_mem->Read(local_ex_mem->_MAR & ~(LL)0x7));
    s1 = (local_ex_mem->_MAR & 3) << 3;
-   mc->mem_wb._opResultLo = (a1 << s1) | (local_ex_mem->_subregOperand & ~(~0UL << s1));
+   local_ex_mem->_opResultLo = (a1 << s1) | (local_ex_mem->_subregOperand & ~(~0UL << s1));
 }
 
 void
 Mipc::mem_lw (Mipc *mc, EX_MEM_REG* local_ex_mem)
 {
-   mc->mem_wb._opResultLo = mc->_mem->BEGetWord (local_ex_mem->_MAR, mc->_mem->Read(local_ex_mem->_MAR & ~(LL)0x7));
+   local_ex_mem->_opResultLo = mc->_mem->BEGetWord (local_ex_mem->_MAR, mc->_mem->Read(local_ex_mem->_MAR & ~(LL)0x7));
 }
 
 void
@@ -1397,13 +1395,13 @@ Mipc::mem_lwr (Mipc *mc, EX_MEM_REG* local_ex_mem)
 
    ar1 = mc->_mem->BEGetWord (local_ex_mem->_MAR, mc->_mem->Read(local_ex_mem->_MAR & ~(LL)0x7));
    s1 = (~local_ex_mem->_MAR & 3) << 3;
-   mc->mem_wb._opResultLo = (ar1 >> s1) | (local_ex_mem->_subregOperand & ~(~(unsigned)0 >> s1));
+   local_ex_mem->_opResultLo = (ar1 >> s1) | (local_ex_mem->_subregOperand & ~(~(unsigned)0 >> s1));
 }
 
 void
 Mipc::mem_lwc1 (Mipc *mc, EX_MEM_REG* local_ex_mem)
 {
-   mc->mem_wb._opResultLo = mc->_mem->BEGetWord (local_ex_mem->_MAR, mc->_mem->Read(local_ex_mem->_MAR & ~(LL)0x7));
+   local_ex_mem->_opResultLo = mc->_mem->BEGetWord (local_ex_mem->_MAR, mc->_mem->Read(local_ex_mem->_MAR & ~(LL)0x7));
 }
 
 void

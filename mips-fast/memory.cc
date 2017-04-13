@@ -79,7 +79,7 @@ Memory::MainLoop (void)
          _mc->mem_wb._memOp             =     copied_ex_mem->_memOp            ;  
          _mc->mem_wb._MAR               =     copied_ex_mem->_MAR              ;
          _mc->mem_wb._opResultHi        =     copied_ex_mem->_opResultHi       ;
-         _mc->mem_wb._opResultLo        =     copied_ex_mem->_opResultLo       ;  
+         _mc->mem_wb._opResultLo        =     copied_ex_mem->_opResultLo       ; 
          _mc->mem_wb._hi                =     copied_ex_mem->_hi               ; 
          _mc->mem_wb._lo                =     copied_ex_mem->_lo               ; 
          _mc->mem_wb._opControl         =     copied_ex_mem->_opControl        ; 

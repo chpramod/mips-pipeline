@@ -17,9 +17,11 @@ Decode::MainLoop (void)
    fpt_last_dst1 = default_reg; //fpt_last_dst1 is destination of (i-1)th instr if it is floating pt instr
    fpt_last_dst2 = default_reg; //(i-2)th instr
    bool repeat_input = FALSE;
+   bool last_inst_branch = FALSE;
    int stall = 0;
    while (1) {
       AWAIT_P_PHI0;	// @posedge
+      last_inst_branch = _mc->id_ex._bd ;
       // PAUSE(20);
       // if (_mc->_insValid) {
       // printf("Stall value %d\n",stall);
@@ -31,7 +33,8 @@ Decode::MainLoop (void)
       }else if(stall == 1){
          stall --;
          AWAIT_P_PHI1;  // @negedge
-         _mc->refetch = FALSE;
+         if(!last_inst_branch)
+            _mc->refetch = FALSE;
       }else{
          stall --;
          _mc->zeroOutID_EX();
@@ -74,7 +77,8 @@ Decode::MainLoop (void)
                   //stall 1 cycle
                   _mc->zeroOutID_EX();
                   stall = 1;
-                  _mc->refetch = TRUE;
+                  if(!last_inst_branch)
+                     _mc->refetch = TRUE;
                   fpt_last_dst2 = fpt_last_dst1;
                   fpt_last_dst1 = default_reg;
                   last_dst2 = last_dst1;
@@ -109,7 +113,8 @@ Decode::MainLoop (void)
                   //Stall 1 cycle
                   _mc->zeroOutID_EX();
                   stall = 1;
-                  _mc->refetch = TRUE;
+                  if(!last_inst_branch)
+                     _mc->refetch = TRUE;
                   last_dst2 = last_dst1;
                   last_dst1 = default_reg; 
                   fpt_last_dst2 = fpt_last_dst1;

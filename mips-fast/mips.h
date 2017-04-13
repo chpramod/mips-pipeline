@@ -64,7 +64,7 @@ struct EX_MEM_REG{
 struct ID_EX_REG{
    unsigned int _ins;
    unsigned int _pc;
-   unsigned int src_reg1, src_reg2, subreg,fpt_src_reg;
+   unsigned int src_reg1, src_reg2,fpt_src_reg;
    Bool is_fpt;
    signed int  _decodedSRC1, _decodedSRC2;   // Reg fetch output (source values)
    unsigned _decodedDST;         // Decoder output (dest reg no)

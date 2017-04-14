@@ -37,12 +37,11 @@ Decode::MainLoop (void)
       }else if(stall == 1){
          stall --;
          AWAIT_P_PHI1;  // @negedge
-         if(!last_inst_branch)
-            _mc->refetch = FALSE;
+         _mc->refetch = FALSE;
       }else{
          stall --;
-         _mc->zeroOutID_EX();
          AWAIT_P_PHI1;  // @negedge
+         _mc->zeroOutID_EX();
          continue;
       }
 
@@ -78,18 +77,13 @@ Decode::MainLoop (void)
                   //stall 1 cycle
                   _mc->zeroOutID_EX();
                   stall = 1;
-                  if(!last_inst_branch)
-                     _mc->refetch = TRUE;
+                  _mc->refetch = TRUE;
                   fpt_last_dst2 = fpt_last_dst1;
                   fpt_last_dst1 = default_reg;
                   last_dst2 = last_dst1;
                   last_dst1 = default_reg;
                   // printf("DECODE : Stall 1 case, fpt PC : %#x, \n",pc);
                }else{
-                  if (_mc->id_ex._bd == 1){
-                     _mc->got_branch = TRUE;
-                     // printf("BRanch PC:%#x\n",pc);
-                  }
                   fpt_last_dst2 = fpt_last_dst1;
                   fpt_last_dst1 = _mc->id_ex._decodedDST  == 10000 ? default_reg : _mc->id_ex._decodedDST;
                   last_dst2 = last_dst1;
@@ -118,18 +112,13 @@ Decode::MainLoop (void)
                   //Stall 1 cycle
                   _mc->zeroOutID_EX();
                   stall = 1;
-                  if(!last_inst_branch)
-                     _mc->refetch = TRUE;
+                  _mc->refetch = TRUE;
                   last_dst2 = last_dst1;
                   last_dst1 = default_reg; 
                   fpt_last_dst2 = fpt_last_dst1;
                   fpt_last_dst1 = default_reg;
                   // printf("DECODE : Stall 1 case, integer PC : %#x, \n",pc);
                }else{
-                  if (_mc->id_ex._bd == 1){
-                     _mc->got_branch = TRUE;
-                     // printf("BRanch PC:%#x\n",pc);
-                  }
                   last_dst2 = last_dst1;
                   fpt_last_dst2 = fpt_last_dst1;
                   fpt_last_dst1 = default_reg;

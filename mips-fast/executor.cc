@@ -12,11 +12,9 @@ Exe::MainLoop (void)
 {
    unsigned int ins;
    Bool isSyscall, isIllegalOp;
-   Bool local_got_branch;
    while (1) {
       AWAIT_P_PHI0;  // @posedge
          // PAUSE(30);
-         local_got_branch = _mc->got_branch;
          ID_EX_REG *copied_id_ex = new ID_EX_REG();
          copied_id_ex->_ins            = _mc->id_ex._ins;
          copied_id_ex->_pc             = _mc->id_ex._pc;
@@ -39,8 +37,7 @@ Exe::MainLoop (void)
          copied_id_ex->_opControl      = _mc->id_ex._opControl; 
          copied_id_ex->_memOp          = _mc->id_ex._memOp;   
          // printf("EXEC : copying done\n");
-         // printf("EXEC : Ins:%#x PC:%#x\n",copied_id_ex->_ins, copied_id_ex->_pc);
-         AWAIT_P_PHI1;  // @negedge 
+         // printf("EXEC : Ins:%#x PC:%#x\n",copied_id_ex->_ins, copied_id_ex->_pc); 
 
           // printf("EXEC : %d %d %d %d\n",
           //   copied_id_ex->_writeREG, 
@@ -55,9 +52,6 @@ Exe::MainLoop (void)
                copied_id_ex->_opControl(_mc,copied_id_ex,copied_id_ex->_ins);
             // printf("<%llu> Executed ins %#x\n", SIM_TIME, copied_id_ex->_ins);
             // printf("EXEC Result after %d\n",_mc->ex_mem._opResultLo);
-            if (local_got_branch == TRUE){
-               _mc->got_branch = FALSE;
-            }
 #ifdef MIPC_DEBUG
             fprintf(_mc->_debugLog, "<%llu> Executed ins %#x\n", SIM_TIME, copied_id_ex->_ins);
 #endif
@@ -90,7 +84,10 @@ Exe::MainLoop (void)
          //    /* I think lastbd of the next instr i+1 */
          //    copied_id_ex->_lastbd = copied_id_ex->_bd;
          // }
-         
+         _mc->ex_if_bypass._bd = copied_id_ex->_bd;
+         _mc->ex_if_bypass._btaken = copied_id_ex->_btaken;
+         _mc->ex_if_bypass._btgt = copied_id_ex->_btgt;
+         AWAIT_P_PHI1;  // @negedge
          _mc->ex_mem._ins               =     copied_id_ex->_ins              ;                                   
          _mc->ex_mem._pc                =     copied_id_ex->_pc               ;              
          _mc->ex_mem._decodedSRC1       =     copied_id_ex->_decodedSRC1      ;
@@ -108,8 +105,11 @@ Exe::MainLoop (void)
          _mc->ex_mem._btaken            =     copied_id_ex->_btaken           ;  
          _mc->ex_mem._btgt              =     copied_id_ex->_btgt             ;
          _mc->ex_mem._isSyscall         =     copied_id_ex->_isSyscall        ;
-         _mc->ex_mem._isIllegalOp       =     copied_id_ex->_isIllegalOp      ;  
-         _mc->ex_mem._memOp             =     copied_id_ex->_memOp            ; 
+         _mc->ex_mem._isIllegalOp       =     copied_id_ex->_isIllegalOp      ;
+         _mc->ex_mem._memOp             =     copied_id_ex->_memOp            ;
+         _mc->ex_mem._MAR               =     copied_id_ex->_MAR              ; 
+         _mc->ex_mem._opResultHi        =     copied_id_ex->_opResultHi       ; 
+         _mc->ex_mem._opResultLo        =     copied_id_ex->_opResultLo       ;
          _mc->ex_mem._opControl         =     copied_id_ex->_opControl        ; 
 
          // printf("EXEC_MEM: %d %d %d %d\n",

@@ -33,17 +33,19 @@ Mipc::MainLoop (void)
    while (!_sim_exit) {
      AWAIT_P_PHI0;	// @posedge
      // if (_insDone) {
-        if (got_syscall==FALSE && got_branch==FALSE){
+        if (got_syscall==FALSE){
           if(refetch==FALSE){
             _nfetched++;
             // printf("FETCH : Branch Taken: %d\n",ex_mem._btaken);
-            if(ex_mem._bd==1 && ex_mem._btaken){
-              _pc = ex_mem._btgt; 
+            AWAIT_P_PHI1; // @negedge
+            if(ex_if_bypass._bd==1 && ex_if_bypass._btaken){
+              _pc = ex_if_bypass._btgt; 
               // printf("THIS IS TAKEN : %#x\n", _pc);
               // exit(0);
             }
           }else{
             // printf("INSTR:%#x FETCH : Refetching\n",_pc);
+            AWAIT_P_PHI1; // @negedge
             _pc = prev_pc;
           }
           addr = _pc;
@@ -52,7 +54,6 @@ Mipc::MainLoop (void)
             //   _pc = _pc + 4;
             // }
           // printf("FETCH pc : %#x prev pc: %#x\n",_pc, prev_pc);
-          AWAIT_P_PHI1;	// @negedge
           ins = _mem->BEGetWord (addr, _mem->Read(addr & ~(LL)0x7));
           // printf("<%llu> Fetched ins %#x from PC %#x\n", SIM_TIME, ins, _pc);
   #ifdef MIPC_DEBUG
@@ -159,6 +160,7 @@ Mipc::Reboot (char *image)
       zeroOutID_EX();
       zeroOutEX_MEM();
       zeroOutMEM_WB();
+      zeroOutEX_IF_BYPASS();
 
       _num_load = 0;
       _num_store = 0;

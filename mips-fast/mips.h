@@ -35,6 +35,7 @@ struct ID_EX_REG;
 struct EX_MEM_REG;
 struct MEM_WB_REG;
 struct IF_ID_REG;
+struct EX_IF_BYPASS;
 
 struct IF_ID_REG{
    unsigned int _ins;
@@ -74,6 +75,8 @@ struct ID_EX_REG{
    signed int  _decodedSRC1, _decodedSRC2;   // Reg fetch output (source values)
    unsigned _decodedDST;         // Decoder output (dest reg no)
    unsigned    _subregOperand;         // Needed for lwl and lwr
+   unsigned _MAR;          // Memory address register
+   unsigned _opResultHi, _opResultLo;  // Result of operation
    Bool  _memControl;         // Memory instruction?
    Bool     _writeREG, _writeFREG;     // WB control
    signed int  _branchOffset;
@@ -110,6 +113,13 @@ struct MEM_WB_REG{
    void (*_memOp)(Mipc*,EX_MEM_REG*);
    void (*_opControl)(Mipc*, ID_EX_REG*,unsigned);
 };
+
+struct EX_IF_BYPASS{
+   int      _btaken;          // taken branch (1 if taken, 0 if fall-through)
+   int      _bd;           // 1 if the next ins is delay slot
+   unsigned int   _btgt;            // branch target
+};
+
 
 class Mipc : public SimObject {
 public:
@@ -149,6 +159,7 @@ public:
    /* EX/MEM register */
    EX_MEM_REG ex_mem;
 
+   EX_IF_BYPASS ex_if_bypass;
    /* MEM/WB register */
    MEM_WB_REG mem_wb;
 
@@ -291,6 +302,7 @@ public:
    void zeroOutID_EX();
    void zeroOutEX_MEM();
    void zeroOutMEM_WB();
+   void zeroOutEX_IF_BYPASS();
 };
 
 

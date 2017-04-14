@@ -19,6 +19,10 @@ typedef unsigned Bool;
 
 #define FP_TWIDDLE 1
 
+#define REG_HI 100
+#define REG_LO 101
+#define REG_BOTH 102
+
 #endif
 
 #include "mem.h"
@@ -64,8 +68,9 @@ struct EX_MEM_REG{
 struct ID_EX_REG{
    unsigned int _ins;
    unsigned int _pc;
-   unsigned int src_reg1, src_reg2,fpt_src_reg;
+   unsigned int src_reg1, src_reg2,fpt_src_reg,dst_hi,dst_lo;
    Bool is_fpt;
+   Bool is_hi_lo;
    signed int  _decodedSRC1, _decodedSRC2;   // Reg fetch output (source values)
    unsigned _decodedDST;         // Decoder output (dest reg no)
    unsigned    _subregOperand;         // Needed for lwl and lwr

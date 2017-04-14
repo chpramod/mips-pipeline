@@ -35,6 +35,7 @@ Mipc::MainLoop (void)
      // if (_insDone) {
         if (got_syscall==FALSE && got_branch==FALSE){
           if(refetch==FALSE){
+            _nfetched++;
             // printf("FETCH : Branch Taken: %d\n",ex_mem._btaken);
             if(ex_mem._bd==1 && ex_mem._btaken){
               _pc = ex_mem._btgt; 
@@ -63,7 +64,6 @@ Mipc::MainLoop (void)
           _pc += 4;
           // _insValid = TRUE;
           // _insDone = FALSE;
-          _nfetched++;
           // _bd = 0;
        // }
         }

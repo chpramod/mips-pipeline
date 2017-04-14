@@ -1,5 +1,9 @@
 #include "decode.h"
 
+#define REG_HI 100
+#define REG_LO 101
+#define REG_BOTH 102
+
 Decode::Decode (Mipc *mc)
 {
    _mc = mc;
@@ -11,7 +15,7 @@ void
 Decode::MainLoop (void)
 {
    unsigned int ins,pc;
-   unsigned int last_dst1, last_dst2, fpt_last_dst1, fpt_last_dst2, default_reg = 2000;
+   unsigned int last_dst1, last_dst2, fpt_last_dst1, fpt_last_dst2, default_reg = 2000, mdst1,mdst2;
    last_dst1 = default_reg; //last_dst1 is destination of (i-1)th instr
    last_dst2 = default_reg; //(i-2)th instr
    fpt_last_dst1 = default_reg; //fpt_last_dst1 is destination of (i-1)th instr if it is floating pt instr
@@ -49,10 +53,7 @@ Decode::MainLoop (void)
       else{
          // printf("DECODE : No syscall\n");
          _mc->Dec(ins,pc);
-         if (_mc->id_ex._bd == 1){
-         // _mc->got_branch = TRUE;
-         // printf("####################BRanch PC:%#x\n",pc);
-         }
+
 #ifdef MIPC_DEBUG
          fprintf(_mc->_debugLog, "<%llu> Decoded ins %#x\n", SIM_TIME, ins);
 #endif
@@ -98,7 +99,9 @@ Decode::MainLoop (void)
             else{                //Integer instructions
                // printf("stored regs %u %u\n",last_dst1, last_dst2);
                // printf("check regs %u %u\n",_mc->id_ex.src_reg1, _mc->id_ex.src_reg2);
-               if ( (_mc->id_ex.src_reg1 == last_dst1 && last_dst1!=0 ) || (_mc->id_ex.src_reg2 == last_dst1 && last_dst1 != 0)) {
+               if ( (_mc->id_ex.src_reg1 == last_dst1 && last_dst1!=0 ) || 
+                   (_mc->id_ex.src_reg2 == last_dst1 && last_dst1 != 0) || 
+                   (last_dst1 == REG_BOTH && (_mc->id_ex.src_reg1==REG_HI || _mc->id_ex.src_reg1==REG_LO)) ) {
                   //Stall 2 cycles
                   _mc->zeroOutID_EX();
                   stall = 2;
@@ -109,7 +112,9 @@ Decode::MainLoop (void)
                   fpt_last_dst1 = default_reg;
                   // printf("DECODE : Stall 2 case, integer PC : %#x, \n",pc);
                }  
-               else if ( (_mc->id_ex.src_reg1 == last_dst2 && last_dst2!=0)|| (_mc->id_ex.src_reg2 == last_dst2 && last_dst2!=0)){
+               else if ( (_mc->id_ex.src_reg1 == last_dst2 && last_dst2!=0) || 
+                  (_mc->id_ex.src_reg2 == last_dst2 && last_dst2!=0) || 
+                  (last_dst2 == REG_BOTH && (_mc->id_ex.src_reg1==REG_HI || _mc->id_ex.src_reg1==REG_LO))) {
                   //Stall 1 cycle
                   _mc->zeroOutID_EX();
                   stall = 1;
@@ -126,9 +131,19 @@ Decode::MainLoop (void)
                      // printf("BRanch PC:%#x\n",pc);
                   }
                   last_dst2 = last_dst1;
-                  last_dst1 = _mc->id_ex._decodedDST  == 10000 ? default_reg : _mc->id_ex._decodedDST; 
                   fpt_last_dst2 = fpt_last_dst1;
                   fpt_last_dst1 = default_reg;
+                  if(_mc->id_ex.is_hi_lo){
+                     if(_mc->id_ex.dst_hi == REG_HI && _mc->id_ex.dst_lo != REG_LO){
+                        last_dst1 = REG_HI;
+                     }else if(_mc->id_ex.dst_hi != REG_HI && _mc->id_ex.dst_lo == REG_LO){
+                        last_dst1 = REG_LO;
+                     }else{
+                        last_dst1 = REG_BOTH;
+                     }
+                  }else{
+                     last_dst1 = _mc->id_ex._decodedDST  == 10000 ? default_reg : _mc->id_ex._decodedDST; 
+                  }
                }
             }
          }

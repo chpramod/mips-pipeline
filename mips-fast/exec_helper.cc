@@ -4,6 +4,9 @@
 #include <assert.h>
 #include "app_syscall.h"
 
+#define REG_HI 100
+#define REG_LO 101
+
 /*------------------------------------------------------------------------
  *
  *  Instruction exec 
@@ -120,8 +123,8 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
    unsigned int ar1, ar2, s1, s2, r1, r2, t1, t2;
    LL addr;
    unsigned int val;
-   unsigned int src_reg1, src_reg2,fpt_src_reg;
-   Bool is_fpt; 
+   unsigned int src_reg1, src_reg2,fpt_src_reg,dst_hi,dst_lo;
+   Bool is_fpt, is_hi_lo; 
 
    LL value, mask;
    int sa,j;
@@ -131,10 +134,13 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
    _btgt = 0xdeadbeef;
    src_reg1 = 10000;
    src_reg2 = 10000;
+   dst_hi = 10000;
+   dst_lo = 10000;
    fpt_src_reg = 10000;
    _isIllegalOp = FALSE;
    _isSyscall = FALSE;
    is_fpt = FALSE;
+   is_hi_lo = FALSE;
    i.data = ins;
    // printf("EXEC_HELPER : reg.op:%d reg.func:%d\n",i.reg.op,i.reg.func);
   
@@ -224,6 +230,9 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
          _loWPort = TRUE;
          _writeREG = FALSE;
          _writeFREG = FALSE;
+         dst_hi = REG_HI;
+         dst_lo = REG_LO;
+         is_hi_lo = TRUE;
 	 break;
 
       case 0x1b:			// divu
@@ -232,21 +241,28 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
          _loWPort = TRUE;
          _writeREG = FALSE;
          _writeFREG = FALSE;
+         dst_hi = REG_HI;
+         dst_lo = REG_LO;
+         is_hi_lo = TRUE;
 	 break;
 
       case 0x10:			// mfhi
          _opControl = func_mfhi;
+         src_reg1 = REG_HI;
 	 break;
 
       case 0x12:			// mflo
          _opControl = func_mflo;
+         src_reg1 = REG_LO;
 	 break;
 
       case 0x11:			// mthi
          _opControl = func_mthi;
          _hiWPort = TRUE;
+         dst_hi = REG_HI;
          _writeREG = FALSE;
          _writeFREG = FALSE;
+         is_hi_lo = TRUE;
 	 break;
 
       case 0x13:			// mtlo
@@ -254,6 +270,8 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
          _loWPort = TRUE;
          _writeREG = FALSE;
          _writeFREG = FALSE;
+         dst_lo = REG_LO;
+         is_hi_lo = TRUE;
 	 break;
 
       case 0x18:			// mult
@@ -262,6 +280,9 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
          _loWPort = TRUE;
          _writeREG = FALSE;
          _writeFREG = FALSE;
+         dst_hi = REG_HI;
+         dst_lo = REG_LO;
+         is_hi_lo = TRUE;
 	 break;
 
       case 0x19:			// multu
@@ -270,6 +291,9 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
          _loWPort = TRUE;
          _writeREG = FALSE;
           _writeFREG = FALSE;
+         dst_hi = REG_HI;
+         dst_lo = REG_LO;
+         is_hi_lo = TRUE;
 	 break;
 
       case 9:			// jalr
@@ -770,6 +794,9 @@ Mipc::Dec (unsigned int ins,unsigned int pc)
 
    id_ex._ins = ins;
    id_ex._pc = pc;
+   id_ex.dst_hi = dst_hi;
+   id_ex.dst_lo = dst_lo;
+   id_ex.is_hi_lo = is_hi_lo;
    id_ex.src_reg1 = src_reg1;
    id_ex.src_reg2 = src_reg2;
    id_ex.fpt_src_reg = fpt_src_reg;

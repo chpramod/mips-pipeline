@@ -23,32 +23,32 @@ export PATH=$PATH:$SIMDIR/Tools/bin/$CPU:$SIMDIR/Tools/bin
 ```
 Make sure to execute
 ```
-source ~/.bashrc.
+source ~/.bashrc
 ```
 ***Compiling the simulator***
 Move to ~/Ksim/cpus/sync/mips-fast/ and type `gmake clobber clean'
 followed by `gmake'.
-
-> cd ~/Ksim/cpus/sync/mips-fast/
-> gmake clobber clean
-> gmake
-
+```shell
+cd ~/Ksim/cpus/sync/mips-fast/
+gmake clobber clean
+gmake
+```
 If everything goes fine, you should see an executable named mipc in the current directory.
 This is the simulator binary.
 
 ***Compiling the test programs***
 Move to ~/Ksim/Bench/lib and type gmake. 
-
-> cd ~/Ksim/Bench/lib
-> gmake
-
+```shell
+cd ~/Ksim/Bench/lib
+gmake
+```
 Move to the individual test program directories in ~/Ksim/Bench/testcode and type gmake to compile each.
 If everything goes fine, in each directory you should see a .image and a .ld file. The .image
 file contains the binary image of the application and is the input to the simulator, while the .ld file 
 can be used to generate a readable disassembly of the executable:
-
+```shell
 mips-sgi-irix5-objdump -D foo.ld > foo.dis
-
+```
 The leftmost column of each non-empty line in foo.dis is the PC of the
 instruction listed in that line. This is very useful for debugging.
 
@@ -57,10 +57,10 @@ The simulator takes as input the name
 of the .image file. It should be run from the ~/Ksim/cpus/sync/mips-fast/
 directory. For example, to run the program in the ~/Ksim/Bench/testcode/asm-sim/
 directory, you should say the following.
-
-> cd ~/Ksim/cpus/sync/mips-fast/
-> ./mipc ~/Ksim/Bench/testcode/asm-sim/example
-
+```shell
+cd ~/Ksim/cpus/sync/mips-fast/
+./mipc ~/Ksim/Bench/testcode/asm-sim/example
+```
 Note that the .image extension is dropped from
 ~/Ksim/Bench/testcode/asm-sim/example.image because that is the default
 extension. On successful completion of the simulation, the expected output

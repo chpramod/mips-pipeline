@@ -8,7 +8,7 @@ involve floating-point operations.
 INSTALLATION
 -------------
 
-***Setting up the environment***
+####Setting up the environment
 Include the following lines in your .bashrc. If
 you use some other shell environment, change these accordingly.
 
@@ -25,7 +25,7 @@ Make sure to execute
 ```
 source ~/.bashrc
 ```
-***Compiling the simulator***
+####Compiling the simulator
 Move to ~/Ksim/cpus/sync/mips-fast/ and type `gmake clobber clean'
 followed by `gmake'.
 ```shell
@@ -36,7 +36,7 @@ gmake
 If everything goes fine, you should see an executable named mipc in the current directory.
 This is the simulator binary.
 
-***Compiling the test programs***
+####Compiling the test programs
 Move to ~/Ksim/Bench/lib and type gmake. 
 ```shell
 cd ~/Ksim/Bench/lib
@@ -52,7 +52,7 @@ mips-sgi-irix5-objdump -D foo.ld > foo.dis
 The leftmost column of each non-empty line in foo.dis is the PC of the
 instruction listed in that line. This is very useful for debugging.
 
-***Running a program on the simulator***
+####Running a program on the simulator
 The simulator takes as input the name
 of the .image file. It should be run from the ~/Ksim/cpus/sync/mips-fast/
 directory. For example, to run the program in the ~/Ksim/Bench/testcode/asm-sim/
@@ -67,7 +67,7 @@ extension. On successful completion of the simulation, the expected output
 should be printed and a statistics file named mipc.log is generated in
 Ksim/cpus/sync/mips-fast/ directory. 
 
-*** SPECIFICATIONS (PROVIDED BY THE INSTRUCTOR) ***
+####SPECIFICATIONS (PROVIDED BY THE INSTRUCTOR)
 
 1. The compiler always fills in the branch delay slot correctly. So, there
 should not be any CPI loss due to branches provided you design the pipeline

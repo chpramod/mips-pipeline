@@ -8,10 +8,11 @@ involve floating-point operations.
 INSTALLATION
 -------------
 
-***Setting up the environment*** 
+***Setting up the environment***
 Include the following lines in your .bashrc. If
 you use some other shell environment, change these accordingly.
 
+```shell
 export CPU=X86
 export ARCH=x86
 export SIMDIR=~/Ksim
@@ -19,11 +20,11 @@ export FLASH_TOOLS=$SIMDIR/Tools
 export TWINEDIR=$SIMDIR/Tools
 export FLASH_PERL_EXEC=/usr/bin/perl
 export PATH=$PATH:$SIMDIR/Tools/bin/$CPU:$SIMDIR/Tools/bin
-
+```
 Make sure to execute
-
+```
 source ~/.bashrc.
-
+```
 ***Compiling the simulator***
 Move to ~/Ksim/cpus/sync/mips-fast/ and type `gmake clobber clean'
 followed by `gmake'.

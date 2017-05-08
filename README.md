@@ -67,7 +67,7 @@ extension. On successful completion of the simulation, the expected output
 should be printed and a statistics file named mipc.log is generated in
 Ksim/cpus/sync/mips-fast/ directory. 
 
-####SPECIFICATIONS (PROVIDED BY THE INSTRUCTOR)
+#### SPECIFICATIONS (PROVIDED BY THE INSTRUCTOR)
 
 1. The compiler always fills in the branch delay slot correctly. So, there
 should not be any CPI loss due to branches provided you design the pipeline
